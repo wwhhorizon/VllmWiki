@@ -1,0 +1,31 @@
+# vllm-project/vllm#9092: [Installation]: cannot install vllm with openvino backend
+
+| 字段 | 值 |
+| --- | --- |
+| Issue | [#9092](https://github.com/vllm-project/vllm/issues/9092) |
+| 状态 | closed |
+| 标签 | installation |
+| 评论 | 1; 本地原始数据只有评论数量，没有评论正文 |
+
+## 源证据
+
+### Issue 标题
+
+> [Installation]: cannot install vllm with openvino backend
+
+### Issue 正文摘录
+
+### Your current environment ```text ERROR: Cannot install openvino-tokenizers[transformers]==2024.4.0.0, optimum-intel and vllm==0.6.3.dev100+g15986f59.openvino because these package versions have conflicting dependencies. The conflict is caused by: vllm 0.6.3.dev100+g15986f59.openvino depends on transformers>=4.45.0 openvino-tokenizers[transformers] 2024.4.0.0 depends on transformers>=4.36.0; extra == "transformers" optimum-intel 1.19.0 depends on transformers =4.36 To fix this you could try to: 1. loosen the range of package versions you've specified 2. remove package versions to allow pip to attempt to solve the dependency conflict ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/latest/topics/dependency-resolution/#dealing-with-dependency-conflicts ``` ### How you are installing vllm ```sh git clone https://github.com/vllm-project/vllm.git cd vllm pip install -r requirements-build.txt --extra-index-url https://download.pytorch.org/whl/cpu PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu" VLLM_TARGET_DEVICE=openvino python -m pip install -v . follow the offical step https://docs.vllm.ai/en/latest/getting_started/openvino-installation.html ``` ### Bef...
+
+## 候选优化模式
+
+- [构建、依赖与打包](../patterns/build_dependency_packaging.md) - 分数 5: [Installation]: cannot install vllm with openvino backend installation ### Your current environment ```text ERROR: Cannot install openvino-tokenizers[transformers]==2024.4.0.0, optimum-intel and vllm==0.6.3.dev100+g15986
+- [Backend 路由与 Fallback](../patterns/backend_routing_fallback.md) - 分数 1: [Installation]: cannot install vllm with openvino backend installation ### Your current environment ```text ERROR: Cannot install openvino-tokenizers[transformers]==2024.4.0.0, optimum-intel and vllm==0.6.3.dev100+g1598...
+- [硬件架构 Guard](../patterns/hardware_arch_guard.md) - 分数 1: ``` ### Before submitting a new issue... - [X] Make sure you already searched for relevant issues, and asked the chatbot living at the bottom right corner of the [documentation page](https://docs.vllm.ai/en/latest/), wh...
+- [验证与 Benchmark](../patterns/verification_benchmarking.md) - 分数 1: ct ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/latest/topics/dependency-resolution/#dealing-with-dependency-conflicts ``` ### How you are installing vllm ```sh git clone https://github.com/vllm-pr...
+
+## Wiki 抽取状态
+
+- 风险：该 issue 有评论，但本地数据只有评论数量，没有评论正文。
+- 该 issue 不在当前 operator/kernel case 表中；保留索引，但暂不推断优化结论。
+- 后续迭代应在可用时读取完整讨论评论。

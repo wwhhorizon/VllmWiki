@@ -1,0 +1,53 @@
+page_types:
+  case:
+    required:
+      - issue_number
+      - source_url
+      - extraction_status
+      - comment_body_status
+      - candidate_patterns
+    optional:
+      - linked_prs
+      - source_excerpt
+      - promotion_state
+  pattern:
+    required:
+      - pattern_id
+      - definition
+      - representative_issue_evidence
+      - representative_pr_evidence
+    optional:
+      - false_positive_notes
+      - promotion_rules
+  mechanism:
+    required:
+      - title
+      - status
+      - contract
+      - mechanism
+      - source_evidence
+      - verification
+      - open_review_queue
+    optional:
+      - scope_boundary
+      - blocked_evidence
+  candidate_ledger:
+    required:
+      - id
+      - source_type
+      - source_number
+      - mechanism
+      - decision
+      - source_read
+      - pr_read
+      - comments_status
+      - promotion_reason
+    decision_values:
+      - include
+      - defer
+      - exclude
+    source_values:
+      - issue
+      - pr
+      - issue_pr_pair
+      - measure

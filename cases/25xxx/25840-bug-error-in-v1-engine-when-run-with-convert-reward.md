@@ -1,0 +1,40 @@
+# vllm-project/vllm#25840: [Bug]: Error in V1 engine when run with --convert reward
+
+| 字段 | 值 |
+| --- | --- |
+| Issue | [#25840](https://github.com/vllm-project/vllm/issues/25840) |
+| 状态 | closed |
+| 标签 | bug |
+| 评论 | 4; 本地原始数据只有评论数量，没有评论正文 |
+| 一级分类 | development |
+| 工作域 | ci_build;distributed_parallel;frontend_api;hardware_porting;model_support;sampling_logits |
+| 子分类 | env_compat |
+| Operator 关键词 | cuda;operator;sampling;triton |
+| 症状 | build_error |
+| 根因提示 | env_dependency |
+| 硬件范围 | amd;nvidia |
+| 需要人工复核 | False |
+
+## 源证据
+
+### Issue 标题
+
+> [Bug]: Error in V1 engine when run with --convert reward
+
+### Issue 正文摘录
+
+### Your current environment ### 🐛 Describe the bug When running ``` vllm serve Qwen/Qwen2.5-7B --runner pooling --convert reward ``` There's error ``` EngineCore_DP0 pid=2362918) File "/home/myuan/src/vllm/vllm/v1/worker/gpu_model_runner.py", line 3237, in _dummy_pooler_run (EngineCore_DP0 pid=2362918) max_task = max(output_size.items(), key=lambda x: x[1])[0] (EngineCore_DP0 pid=2362918) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ (EngineCore_DP0 pid=2362918) ValueError: max() iterable argument is empty ``` Full log in https://gist.github.com/iseeyuan/d21feea9f582a0eae7cddc5089509c09 ### Before submitting a new issue... - [x] Make sure you already searched for relevant issues, and asked the chatbot living at the bottom right corner of the [documentation page](https://docs.vllm.ai/en/latest/), which can answer lots of frequently asked questions.
+
+## 候选优化模式
+
+- [构建、依赖与打包](../patterns/build_dependency_packaging.md) - 分数 3: test/), which can answer lots of frequently asked questions. development ci_build;distributed_parallel;frontend_api;hardware_porting;model_support;sampling_logits cuda;operator;sampling;triton build_error env_dependency...
+- [硬件架构 Guard](../patterns/hardware_arch_guard.md) - 分数 2: c09 ### Before submitting a new issue... - [x] Make sure you already searched for relevant issues, and asked the chatbot living at the bottom right corner of the [documentation page](https://docs.vllm.ai/en/latest/), wh...
+- [模型格式与 Adapter 路径](../patterns/model_format_adapter.md) - 分数 2: rent environment ### 🐛 Describe the bug When running ``` vllm serve Qwen/Qwen2.5-7B --runner pooling --convert reward ``` There's error ``` EngineCore_DP0 pid=2362918) File "/home/myuan/src/vllm/vllm/v1/worker/gpu_model...
+- [Backend 路由与 Fallback](../patterns/backend_routing_fallback.md) - 分数 1: pi;hardware_porting;model_support;sampling_logits cuda;operator;sampling;triton build_error env_dependency Your current environment
+- [验证与 Benchmark](../patterns/verification_benchmarking.md) - 分数 1: ottom right corner of the [documentation page](https://docs.vllm.ai/en/latest/), which can answer lots of frequently asked questions. development ci_build;distributed_parallel;frontend_api;hardware_porting;model_support...
+
+## Wiki 抽取状态
+
+- 风险：该 issue 有评论，但本地数据只有评论数量，没有评论正文。
+- 本地没有 linked-fix 证据；目前只支持症状/路径抽取。
+- 后续迭代应在可用时读取完整讨论评论。

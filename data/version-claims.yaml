@@ -1,0 +1,20 @@
+claims:
+  vllmwiki-snapshot-2026-06-03:
+    statement: 本地 vLLM issue 与 PR raw dataset 生成时间不晚于 2026-06-03。
+    evidence:
+      - all/data/raw/issues_raw.jsonl
+      - all/data/raw/prs_raw.jsonl
+      - VllmWiki/audit/manifest.json
+    implication: 之后的 vLLM issue、评论、PR file diff 和 merge state 可能缺失。
+  kda-repo-2026-06-10:
+    statement: KDA 调研笔记基于 kernel-design-agents commit dda6be3cf1baedd3ed9c76511ef02f72243cc14c。
+    evidence:
+      - .external/kernel-design-agents/README.md
+      - .external/kernel-design-agents/docs/agent-flow.md
+      - .external/KernelWiki/README.md
+    implication: 如果 KDA 后续变化，需要重新调研并更新本 registry。
+  comments-missing:
+    statement: 本地有 issue 评论数量，但大量 issue 缺少评论正文。
+    evidence:
+      - VllmWiki/indexes/issues.csv
+    implication: 依赖评论的 resolution 必须保持 candidate 或 blocked。

@@ -1,0 +1,46 @@
+aliases:
+  bitwise:
+    - bit-identical
+    - exact equality
+    - torch.equal
+    - rtol=0
+    - atol=0
+  deterministic-decoding:
+    - deterministic
+    - nondeterministic
+    - non-deterministic
+    - reproducible
+    - temperature=0
+    - greedy
+  prefix-cache:
+    - prefix caching
+    - prefix-cache
+    - prefix cache
+    - cache hit
+    - cache-hit
+    - cache miss
+    - cache-miss
+  batch-invariance:
+    - batch invariant
+    - batch-invariant
+    - batch invariance
+    - VLLM_BATCH_INVARIANT
+  kv-cache-identity:
+    - kv cache
+    - KV cache
+    - block table
+    - slot mapping
+    - adapter cache key
+    - lora cache key
+  reduction-order:
+    - splitK
+    - split_k
+    - atomicAdd
+    - accumulation order
+  backend-routing:
+    - FlashInfer
+    - FlashAttention
+    - Triton
+    - CUTLASS
+    - ROCm
+    - AITER

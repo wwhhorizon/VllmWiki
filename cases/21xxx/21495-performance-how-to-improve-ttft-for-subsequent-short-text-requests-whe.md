@@ -1,0 +1,31 @@
+# vllm-project/vllm#21495: [Performance]: How to improve TTFT for subsequent short-text requests when the system has just handled a long-text prompt?
+
+| 字段 | 值 |
+| --- | --- |
+| Issue | [#21495](https://github.com/vllm-project/vllm/issues/21495) |
+| 状态 | closed |
+| 标签 | performance;stale |
+| 评论 | 6; 本地原始数据只有评论数量，没有评论正文 |
+
+## 源证据
+
+### Issue 标题
+
+> [Performance]: How to improve TTFT for subsequent short-text requests when the system has just handled a long-text prompt?
+
+### Issue 正文摘录
+
+### Proposal to improve performance We’ve noticed that after vllm receives a long-context request (e.g., 128k), any subsequent short-context requests are blocked until the long-context prefill finishes, causing a very high TTFT for the short requests. Are there any ways to mitigate this issue? ### Report of performance regression _No response_ ### Misc discussion on performance _No response_ ### Your current environment (if you think it is necessary) ```text The output of `python collect_env.py` ``` ### Before submitting a new issue... - [x] Make sure you already searched for relevant issues, and asked the chatbot living at the bottom right corner of the [documentation page](https://docs.vllm.ai/en/latest/), which can answer lots of frequently asked questions.
+
+## 候选优化模式
+
+- [Scheduler 与请求状态生命周期](../patterns/scheduler_request_lifecycle.md) - 分数 3: [Performance]: How to improve TTFT for subsequent short-text requests when the system has just handled a long-text prompt? performance;stale ### Proposal to improve performance We’ve noticed that after vllm receives a l...
+- [验证与 Benchmark](../patterns/verification_benchmarking.md) - 分数 2: s. Are there any ways to mitigate this issue? ### Report of performance regression _No response_ ### Misc discussion on performance _No response_ ### Your current environment (if you think it is necessary) ```text The o...
+- [硬件架构 Guard](../patterns/hardware_arch_guard.md) - 分数 1: ``` ### Before submitting a new issue... - [x] Make sure you already searched for relevant issues, and asked the chatbot living at the bottom right corner of the [documentation page](https://docs.vllm.ai/en/latest/), wh...
+- [Metadata 与 Layout 契约](../patterns/metadata_layout_contract.md) - 分数 1: -context request (e.g., 128k), any subsequent short-context requests are blocked until the long-context prefill finishes, causing a very high TTFT for the short requests. Are there any ways to mitigate this issue? ### R...
+
+## Wiki 抽取状态
+
+- 风险：该 issue 有评论，但本地数据只有评论数量，没有评论正文。
+- 该 issue 不在当前 operator/kernel case 表中；保留索引，但暂不推断优化结论。
+- 后续迭代应在可用时读取完整讨论评论。

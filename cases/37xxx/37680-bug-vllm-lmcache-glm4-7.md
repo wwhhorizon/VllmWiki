@@ -1,0 +1,39 @@
+# vllm-project/vllm#37680: [Bug]: 使用vllm+lmcache部署glm4.7，在多并发+长上下文导致服务挂掉
+
+| 字段 | 值 |
+| --- | --- |
+| Issue | [#37680](https://github.com/vllm-project/vllm/issues/37680) |
+| 状态 | open |
+| 标签 | bug |
+| 评论 | 0; 本地原始数据只有评论数量，没有评论正文 |
+| 一级分类 | correctness |
+| 工作域 | ci_build;distributed_parallel;frontend_api;gemm_linear;hardware_porting;model_support;quantization;sampling_logits;speculative_decoding |
+| 子分类 | precision |
+| Operator 关键词 | cuda;fp8;operator;sampling;triton |
+| 症状 | build_error;nan_inf;slowdown |
+| 根因提示 | dtype;env_dependency |
+| 硬件范围 | amd;nvidia |
+| 需要人工复核 | False |
+
+## 源证据
+
+### Issue 标题
+
+> [Bug]: 使用vllm+lmcache部署glm4.7，在多并发+长上下文导致服务挂掉
+
+### Issue 正文摘录
+
+### Your current environment Collecting environment information... ============================== System Info ============================== OS : Ubuntu 22.04.5 LTS (x86_64) GCC version : (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0 Clang version : Could not collect CMake version : Could not collect Libc version : glibc-2.35 ============================== PyTorch Info ============================== PyTorch version : 2.9.1+cu129 Is debug build : False CUDA used to build PyTorch : 12.9 ROCM used to build PyTorch : N/A ============================== Python Environment ============================== Python version : 3.12.12 (main, Oct 10 2025, 08:52:57) [GCC 11.4.0] (64-bit runtime) Python platform : Linux-5.10.0-291.0.0.194.u187.fos23.x86_64-x86_64-with-glibc2.35 ============================== CUDA / GPU Info ============================== Is CUDA available : True CUDA runtime version : 12.9.86 CUDA_MODULE_LOADING set to : GPU models and configuration : GPU 0: NVIDIA H20 GPU 1: NVIDIA H20 GPU 2: NVIDIA H20 GPU 3: NVIDIA H20 GPU 4: NVIDIA H20 GPU 5: NVIDIA H20 GPU 6: NVIDIA H20 GPU 7: NVIDIA H20 Nvidia driver version : 550.163.01 cuDNN version : Could not collect HIP runtime version : N/A...
+
+## 候选优化模式
+
+- [构建、依赖与打包](../patterns/build_dependency_packaging.md) - 分数 7: ========= OS : Ubuntu 22.04.5 LTS (x86_64) GCC version : (Ubuntu 11.4.0-1ubuntu1~22.04.2) 11.4.0 Clang version : Could not collect CMake version : Could not collect Libc version : glibc-2.35 ============
+- [硬件架构 Guard](../patterns/hardware_arch_guard.md) - 分数 5: version : 2.9.1+cu129 Is debug build : False CUDA used to build PyTorch : 12.9 ROCM used to build PyTorch : N/A ============================== Python Environment ============================== Python version : 3.12.12 (...
+- [Dtype、量化与 Scale 路径](../patterns/dtype_quantization_path.md) - 分数 4: _occup_llc cqm_mbm_total cqm_mbm_local split_lock_detect avx_vnni avx512_bf16 wbnoinvd dtherm ida arat pln pts avx512vbmi umip pku ospke waitpkg avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg tme avx512_vpo...
+- [模型格式与 Adapter 路径](../patterns/model_format_adapter.md) - 分数 4: 并发+长上下文导致服务挂掉 bug ### Your current environment Collecting environment information... ============================== System Info ============================== OS : Ubuntu 22.04.5 LTS (x86_64) GCC version : (Ubuntu 11.4....
+- [Backend 路由与 Fallback](../patterns/backend_routing_fallback.md) - 分数 3: === Versions of relevant libraries ============================== [pip3] flashinfer-python==0.6.1 [pip3] numpy==2.2.6 [pip3] nvidia-cublas-cu12==12.9.1.4 [pip3] nvidia-cuda-cupti-cu12==12.9.79 [pip3] nvidia-cuda-nvrtc-c...
+
+## Wiki 抽取状态
+
+- 本地没有 linked-fix 证据；目前只支持症状/路径抽取。
+- 后续迭代应在可用时读取完整讨论评论。

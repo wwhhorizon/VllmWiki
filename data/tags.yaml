@@ -1,0 +1,27 @@
+tags:
+  bitwise:
+    description: 完全输出相等或确定性数值行为。
+  deterministic-decoding:
+    description: Greedy 或 seeded decoding 在多次运行和不同请求状态下应可复现。
+  prefix-cache:
+    description: Prefix cache hit/miss/read/no-read 等价。
+  batch-invariance:
+    description: 无关请求改变 batch geometry 时，当前请求输出不应改变。
+  kv-cache-identity:
+    description: KV block ownership、adapter identity、offload/restore 或 concurrent prefill identity。
+  quantization:
+    description: FP8、FP4、NVFP4、MXFP4、GPTQ、scale、packing 与 dtype 语义。
+  backend-routing:
+    description: Kernel/backend 选择改变数值行为或正确性行为。
+  reduction-order:
+    description: split-K、atomic 或累加顺序影响可复现性。
+  verification:
+    description: equality、tolerance、regression、benchmark 或 reproducer 契约。
+  candidate:
+    description: 生成或部分复核的证据，不是最终 wiki claim。
+  reviewed:
+    description: Issue/PR 正文已读，但仍可能缺少部分证明。
+  curated:
+    description: 根因、修复、验证和边界都有源证据支持。
+  blocked:
+    description: 缺少评论、PR detail、changed files 或外部证据。

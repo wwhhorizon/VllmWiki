@@ -1,0 +1,58 @@
+{
+  "iteration_id": "20260615T135611Z",
+  "generated_at_utc": "2026-06-15T13:56:11.768173+00:00",
+  "status": "pass",
+  "steps": [
+    {
+      "name": "generate_vllm_wiki",
+      "args": [
+        "E:\\Vllm-Issue\\VllmWiki\\scripts\\generate_vllm_wiki.py"
+      ],
+      "returncode": 0,
+      "started_at_utc": "2026-06-15T13:55:08.785859+00:00",
+      "finished_at_utc": "2026-06-15T13:56:08.269585+00:00",
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "name": "generate_bitwise_review_queue",
+      "args": [
+        "E:\\Vllm-Issue\\VllmWiki\\scripts\\generate_bitwise_review_queue.py"
+      ],
+      "returncode": 0,
+      "started_at_utc": "2026-06-15T13:56:08.269585+00:00",
+      "finished_at_utc": "2026-06-15T13:56:11.343520+00:00",
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "name": "validate_vllmwiki",
+      "args": [
+        "E:\\Vllm-Issue\\VllmWiki\\scripts\\validate_vllmwiki.py",
+        "--json"
+      ],
+      "returncode": 0,
+      "started_at_utc": "2026-06-15T13:56:11.343520+00:00",
+      "finished_at_utc": "2026-06-15T13:56:11.677083+00:00",
+      "stdout_tail": "{\n  \"status\": \"pass\",\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+      "stderr_tail": ""
+    }
+  ],
+  "metrics": {
+    "unique_issues": 15818,
+    "unique_cases": 7239,
+    "unique_prs": 8931,
+    "pattern_evidence_rows": 145553,
+    "bitwise_queue_rows": 684,
+    "bitwise_ledger_rows": 14,
+    "bitwise_mechanism_pages": 6,
+    "missing_core_links": 0
+  },
+  "missing_links": [],
+  "next_focus": [
+    "审计 LoRA/external KV cache identity case：#44250、#30931/#31069、#38606。",
+    "审计 KV metadata cleanup case：#39146/#43741、#39589/#39591、#42572。",
+    "审计 deterministic dispatch case：#25404/#25603、#42240、#33383、#33537。",
+    "审计 quant/load-order case：#38991、#42007/#42120、#23256。"
+  ]
+}

@@ -1,0 +1,40 @@
+# vllm-project/vllm#4731: [Bug]: When enforce_eager is True or False, the paged_attention version used is inconsistent
+
+| 字段 | 值 |
+| --- | --- |
+| Issue | [#4731](https://github.com/vllm-project/vllm/issues/4731) |
+| 状态 | closed |
+| 标签 | bug;stale |
+| 评论 | 2; 本地原始数据只有评论数量，没有评论正文 |
+| 一级分类 | correctness |
+| 工作域 | attention_kv_cache;ci_build;distributed_parallel;hardware_porting;model_support;quantization;speculative_decoding |
+| 子分类 |  |
+| Operator 关键词 | attention;cuda;kernel;operator;quantization;triton |
+| 症状 | build_error |
+| 根因提示 | env_dependency |
+| 硬件范围 | amd;nvidia |
+| 需要人工复核 | False |
+
+## 源证据
+
+### Issue 标题
+
+> [Bug]: When enforce_eager is True or False, the paged_attention version used is inconsistent
+
+### Issue 正文摘录
+
+### Your current environment ```text Collecting environment information... There was a problem when trying to write in your cache folder (/root/.cache/huggingface/hub). You should set the environment variable TRANSFORMERS_CACHE to a writable directory. PyTorch version: 2.3.0+cu121 Is debug build: False CUDA used to build PyTorch: 12.1 ROCM used to build PyTorch: N/A OS: Ubuntu 22.04.3 LTS (x86_64) GCC version: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0 Clang version: Could not collect CMake version: version 3.27.4 Libc version: glibc-2.35 Python version: 3.10.12 (main, Jun 11 2023, 05:26:28) [GCC 11.4.0] (64-bit runtime) Python platform: Linux-4.15.0-142-generic-x86_64-with-glibc2.35 Is CUDA available: True CUDA runtime version: 12.2.128 CUDA_MODULE_LOADING set to: LAZY GPU models and configuration: GPU 0: Tesla V100-SXM2-32GB Nvidia driver version: 525.85.12 cuDNN version: Probably one of the following: /usr/lib/x86_64-linux-gnu/libcudnn.so.8.9.5 /usr/lib/x86_64-linux-gnu/libcudnn_adv_infer.so.8.9.5 /usr/lib/x86_64-linux-gnu/libcudnn_adv_train.so.8.9.5 /usr/lib/x86_64-linux-gnu/libcudnn_cnn_infer.so.8.9.5 /usr/lib/x86_64-linux-gnu/libcudnn_cnn_train.so.8.9.5 /usr/lib/x86_64-linux-gnu/...
+
+## 候选优化模式
+
+- [构建、依赖与打包](../patterns/build_dependency_packaging.md) - 分数 7: [Bug]: When enforce_eager is True or False, the paged_attention version used is inconsistent bug;stale ### Your current environment ```text Collecting environment information... There was a problem when trying to write...
+- [模型格式与 Adapter 路径](../patterns/model_format_adapter.md) - 分数 6: bug;stale ### Your current environment ```text Collecting environment information... There was a problem when trying to write in your cache folder (/root/.cache/huggingface/hub). You should set the environment variable...
+- [硬件架构 Guard](../patterns/hardware_arch_guard.md) - 分数 5: a writable directory. PyTorch version: 2.3.0+cu121 Is debug build: False CUDA used to build PyTorch: 12.1 ROCM used to build PyTorch: N/A OS: Ubuntu 22.04.3 LTS (x86_64) GCC version: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4....
+- [Scheduler 与请求状态生命周期](../patterns/scheduler_request_lifecycle.md) - 分数 2: r is True or False, the paged_attention version used is inconsistent bug;stale ### Your current environment ```text Collecting environment information... There was a problem when trying to write in your cache folder (/r...
+- [Backend 路由与 Fallback](../patterns/backend_routing_fallback.md) - 分数 1: nx==1.14.0 [pip3] pytorch-quantization==2.1.2 [pip3] torch==2.3.0 [pip3] triton==2.3.0 [pip3] vllm-nccl-cu12==2.18.1.0.4.0 [conda] Could not collectROCM Version: Could not collect Neuron SDK Version: N/A vLLM Version: 0...
+
+## Wiki 抽取状态
+
+- 风险：该 issue 有评论，但本地数据只有评论数量，没有评论正文。
+- 本地没有 linked-fix 证据；目前只支持症状/路径抽取。
+- 后续迭代应在可用时读取完整讨论评论。

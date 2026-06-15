@@ -1,0 +1,29 @@
+# vllm-project/vllm#1810: KeyError: 'decoder.layers.23.fc2.weight'  when test model "facebook/opt-6.7b"
+
+| 字段 | 值 |
+| --- | --- |
+| Issue | [#1810](https://github.com/vllm-project/vllm/issues/1810) |
+| 状态 | closed |
+| 标签 |  |
+| 评论 | 0; 本地原始数据只有评论数量，没有评论正文 |
+
+## 源证据
+
+### Issue 标题
+
+> KeyError: 'decoder.layers.23.fc2.weight'  when test model "facebook/opt-6.7b"
+
+### Issue 正文摘录
+
+It looks like the model structure and parameters don't match, how should I fix this
+
+## 候选优化模式
+
+- [模型格式与 Adapter 路径](../patterns/model_format_adapter.md) - 分数 1: KeyError: 'decoder.layers.23.fc2.weight' when test model "facebook/opt-6.7b" It looks like the model structure and parameters don't match, how should I fix this
+- [Scheduler 与请求状态生命周期](../patterns/scheduler_request_lifecycle.md) - 分数 1: KeyError: 'decoder.layers.23.fc2.weight' when test model "facebook/opt-6.7b" It looks like the model structure and parameters don't match, how should I fix this
+- [验证与 Benchmark](../patterns/verification_benchmarking.md) - 分数 1: KeyError: 'decoder.layers.23.fc2.weight' when test model "facebook/opt-6.7b" It looks like the model structure and parameters don't match, how should I fix this
+
+## Wiki 抽取状态
+
+- 该 issue 不在当前 operator/kernel case 表中；保留索引，但暂不推断优化结论。
+- 后续迭代应在可用时读取完整讨论评论。

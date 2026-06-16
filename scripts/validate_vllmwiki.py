@@ -1,4 +1,4 @@
-"""Validate VllmWiki structure, links, and KDA-style governance files."""
+"""Validate VllmWiki structure, links, and KernelWiki-style governance files."""
 
 from __future__ import annotations
 
@@ -17,10 +17,10 @@ if hasattr(sys.stdout, "reconfigure"):
 
 REQUIRED = [
     "README.md",
-    "KDA_RESEARCH_NOTES.md",
+    "KERNELWIKI_REFINEMENT_NOTES.md",
     "WIKI_IMPLEMENTATION.md",
     "ITERATION_PROTOCOL.md",
-    "OPTIMIZATION_FLOW.md",
+    "WIKI_REFINEMENT_FLOW.md",
     "QUALITY_GATE.md",
     "data/schemas.yaml",
     "data/tags.yaml",
@@ -49,10 +49,10 @@ def check_links(errors: list[str], full: bool = False) -> None:
     else:
         files = [
             ROOT / "README.md",
-            ROOT / "KDA_RESEARCH_NOTES.md",
+            ROOT / "KERNELWIKI_REFINEMENT_NOTES.md",
             ROOT / "WIKI_IMPLEMENTATION.md",
             ROOT / "ITERATION_PROTOCOL.md",
-            ROOT / "OPTIMIZATION_FLOW.md",
+            ROOT / "WIKI_REFINEMENT_FLOW.md",
             ROOT / "QUALITY_GATE.md",
             ROOT / "curated" / "bitwise_determinism.md",
             ROOT / "curated" / "bitwise_review_queue.md",

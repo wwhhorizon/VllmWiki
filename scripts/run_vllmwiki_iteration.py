@@ -20,7 +20,7 @@ CORE_LINK_FILES = [
     WIKI / "README.md",
     WIKI / "WIKI_IMPLEMENTATION.md",
     WIKI / "ITERATION_PROTOCOL.md",
-    WIKI / "OPTIMIZATION_FLOW.md",
+    WIKI / "WIKI_REFINEMENT_FLOW.md",
     WIKI / "QUALITY_GATE.md",
     WIKI / "curated" / "bitwise_determinism.md",
 ]

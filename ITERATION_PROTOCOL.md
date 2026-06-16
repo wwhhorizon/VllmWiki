@@ -17,7 +17,7 @@
 8. 运行 validation 和 link gate。
 9. 记录变化、blocker 和下一轮优先队列。
 
-这对应 KDA 的 candidate loop：每个 wiki claim 都像 candidate implementation 一样，必须通过 source 与 validation criteria。
+这对应 KernelWiki 式的知识炼化循环：每个 wiki claim 都必须通过 source 与 validation criteria。
 
 ## 当前任务契约
 
@@ -118,10 +118,10 @@ reviewed measure 可进入 `curated` 的条件：
 - 增加 684 条 strict bitwise review queue。
 - 增加 prefix-cache equivalence、batch invariance、KV identity、quant dtype semantics、deterministic dispatch/reduction、verification contracts 等具体措施。
 
-### Iteration 3：KDA/KernelWiki 对齐
+### Iteration 3：KernelWiki 对齐
 
-- 阅读真实 KDA 与 KernelWiki 源仓库。
-- 增加 KDA 调研笔记、schemas/tags/aliases/version-claims、bitwise ledger。
+- 阅读真实 KernelWiki 源仓库。
+- 增加 KernelWiki 炼化方式笔记、schemas/tags/aliases/version-claims、bitwise ledger。
 - 增加 `query/get/grep/validate` 工具。
 - 将 validation 纳入迭代 gate。
 

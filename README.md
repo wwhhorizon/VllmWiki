@@ -41,7 +41,7 @@ VllmWiki/
 └── scripts/                          # 抓取、抽取、查询、验证脚本
 ```
 
-仓库外的 `E:\Vllm-Issue\all` 保存 raw / targeted evidence。仓库内被忽略的 `cases/`、`patterns/`、`domains/`、`indexes/`、`evidence/`、`curated/bitwise_review_queue.*`、`audit/iteration_*` 是本地可再生材料，不进入 GitHub 结论层。
+仓库外 source layer 保存 raw / targeted evidence。仓库内被忽略的 `cases/`、`patterns/`、`domains/`、`indexes/`、`evidence/`、`curated/bitwise_review_queue.*`、`audit/iteration_*` 是本地可再生材料，不进入 GitHub 结论层。公开文档不记录个人机器上的绝对路径。
 
 ## 维护原则
 

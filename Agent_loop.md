@@ -11,7 +11,7 @@
 2. 当前专题入口。例如 bitwise 专题为 [curated/bitwise/README.md](curated/bitwise/README.md)。
 3. 当前专题 next queue。例如 [curated/bitwise/next.md](curated/bitwise/next.md)。
 4. 当前专题 ledger。例如 [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv)。
-5. 仓库外 targeted evidence，例如 `E:\Vllm-Issue\all\data\targeted\bitwise`。
+5. 仓库外 targeted evidence，由本地 source layer 提供；公开文档不记录机器绝对路径。
 
 ## 每轮目标
 

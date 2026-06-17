@@ -26,7 +26,6 @@ REQUIRED = [
     "data/version-claims.yaml",
     "candidates/bitwise_ledger.csv",
     "curated/bitwise/README.md",
-    "curated/bitwise/evidence_synthesis.md",
     "curated/bitwise/next.md",
 ]
 
@@ -51,7 +50,6 @@ def check_links(errors: list[str], full: bool = False) -> None:
             ROOT / "WIKI_IMPLEMENTATION.md",
             ROOT / "Agent_loop.md",
             ROOT / "curated" / "bitwise" / "README.md",
-            ROOT / "curated" / "bitwise" / "evidence_synthesis.md",
             ROOT / "curated" / "bitwise" / "next.md",
             *sorted((ROOT / "curated" / "bitwise").glob("*.md")),
         ]

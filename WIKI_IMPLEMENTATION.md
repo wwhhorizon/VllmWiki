@@ -23,12 +23,12 @@ GitHub 仓库保存结论层与维护契约：
 | 工具层 | `scripts/` | 是 | 抓取、抽取、查询、验证脚本 |
 | 本地 source/index 层 | `cases/`、`patterns/`、`domains/`、`indexes/`、`evidence/`、review queue、iteration audit | 否 | 可再生候选页、索引表和过程材料 |
 
-原始数据与 targeted evidence 放在仓库外：
+原始数据与 targeted evidence 放在仓库外的 source layer。公开文档只记录逻辑层级，不记录个人机器上的绝对路径：
 
 ```text
-E:\Vllm-Issue\all\data\raw
-E:\Vllm-Issue\all\data\tables
-E:\Vllm-Issue\all\data\targeted\bitwise
+source/raw
+source/tables
+source/targeted/<topic>
 ```
 
 这样做的目的不是丢弃证据，而是让 GitHub 仓库保持为“结论 wiki”，避免大规模机器生成页面造成维护噪声。
@@ -120,7 +120,7 @@ Promotion 条件：
 
 ## Codex Agent 迭代协议
 
-bitwise 主线的持续迭代由 Codex agent 执行，而不是由脚本自动 promotion。每轮迭代先读取 `candidates/bitwise_ledger.csv`，优先选择 `priority=high` 且 `risk_status != stable` 的条目，再精读仓库外 `E:\Vllm-Issue\all\data\targeted\bitwise` 中的本地 targeted evidence。
+bitwise 主线的持续迭代由 Codex agent 执行，而不是由脚本自动 promotion。每轮迭代先读取 `candidates/bitwise_ledger.csv`，优先选择 `priority=high` 且 `risk_status != stable` 的条目，再精读仓库外 source layer 中的本地 targeted evidence。
 
 每轮 agent 必须完成三件事：
 
@@ -167,4 +167,4 @@ git ls-files cases patterns domains indexes evidence curated/bitwise_review_queu
 
 - 早期全量数据仍有大量 issue 缺评论正文；bitwise targeted evidence 已补齐一批评论和 PR detail，但不能外推到所有问题族。
 - 自动生成的 `patterns/`、`domains/`、`cases/` 只适合本地导航，不代表 curated 结论。
-- `curated/bitwise/evidence_synthesis.md` 是 bitwise 第一轮证据综合，后续稳定结论应继续下沉到 `curated/bitwise/*.md`。
+- 早期一次性证据综合文档已移除；稳定结论应直接维护在 `curated/<topic>/` 的专题入口、机制页和 next queue 中。

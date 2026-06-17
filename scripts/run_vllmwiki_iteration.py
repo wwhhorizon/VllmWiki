@@ -21,7 +21,6 @@ CORE_LINK_FILES = [
     WIKI / "WIKI_IMPLEMENTATION.md",
     WIKI / "Agent_loop.md",
     WIKI / "curated" / "bitwise" / "README.md",
-    WIKI / "curated" / "bitwise" / "evidence_synthesis.md",
     WIKI / "curated" / "bitwise" / "next.md",
 ]
 

@@ -18,7 +18,7 @@ if hasattr(sys.stdout, "reconfigure"):
 REQUIRED = [
     "README.md",
     "WIKI_IMPLEMENTATION.md",
-    "loop.md",
+    "Agent_loop.md",
     "audit/manifest.md",
     "data/schemas.yaml",
     "data/tags.yaml",
@@ -49,7 +49,7 @@ def check_links(errors: list[str], full: bool = False) -> None:
         files = [
             ROOT / "README.md",
             ROOT / "WIKI_IMPLEMENTATION.md",
-            ROOT / "loop.md",
+            ROOT / "Agent_loop.md",
             ROOT / "curated" / "bitwise" / "README.md",
             ROOT / "curated" / "bitwise" / "evidence_synthesis.md",
             ROOT / "curated" / "bitwise" / "next.md",

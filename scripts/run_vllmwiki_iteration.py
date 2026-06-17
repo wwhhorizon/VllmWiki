@@ -19,7 +19,7 @@ SCRIPTS = WIKI / "scripts"
 CORE_LINK_FILES = [
     WIKI / "README.md",
     WIKI / "WIKI_IMPLEMENTATION.md",
-    WIKI / "loop.md",
+    WIKI / "Agent_loop.md",
     WIKI / "curated" / "bitwise" / "README.md",
     WIKI / "curated" / "bitwise" / "evidence_synthesis.md",
     WIKI / "curated" / "bitwise" / "next.md",

@@ -17,7 +17,7 @@ GROUPS = {
     "wiki": [
         "README.md",
         "WIKI_IMPLEMENTATION.md",
-        "loop.md",
+        "Agent_loop.md",
         "curated",
     ],
     "cases": ["cases"],

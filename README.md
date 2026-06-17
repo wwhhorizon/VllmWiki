@@ -15,13 +15,13 @@ VllmWiki 的核心不是一次性报告，而是持续炼化流程：
 5. 只有证据足够稳定的结论才下沉到 `curated/` 下对应专题页。
 6. README 只保留项目概览和阅读路线；细节规则、质量门和模板放在 [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md)。
 
-持续迭代时，Codex agent 先根据 ledger 选择高优先级风险项，再精读本地 evidence，最后决定是否更新机制页、ledger 和下一轮补证队列。具体 agent loop 写在 [loop.md](loop.md)。
+持续迭代时，Codex agent 先根据 ledger 选择高优先级风险项，再精读本地 evidence，最后决定是否更新机制页、ledger 和下一轮补证队列。具体 agent loop 写在 [Agent_loop.md](Agent_loop.md)。
 
 ## 阅读入口
 
 | 文档 | 作用 |
 | --- | --- |
-| [loop.md](loop.md) | Codex agent 自主迭代协议和本项目对话背景 |
+| [Agent_loop.md](Agent_loop.md) | Codex agent 自主迭代规划 |
 | [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md) | 仓库结构、证据规则、质量门和机制页模板 |
 | [curated/bitwise/README.md](curated/bitwise/README.md) | 当前 bitwise 专题入口 |
 | [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv) | 当前专题 claim 的 include/defer/exclude 账本 |
@@ -31,7 +31,7 @@ VllmWiki 的核心不是一次性报告，而是持续炼化流程：
 ```text
 VllmWiki/
 ├── README.md                         # 项目概览、迭代流程和阅读路线
-├── loop.md                           # Codex 自主迭代协议
+├── Agent_loop.md                     # Codex 自主迭代规划
 ├── WIKI_IMPLEMENTATION.md            # 维护规范、质量门与机制页模板
 ├── curated/                          # 人工/agent 复核后的结论层
 │   └── bitwise/                      # 当前 bitwise 专题

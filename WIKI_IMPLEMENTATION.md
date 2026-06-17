@@ -15,7 +15,7 @@ GitHub 仓库保存结论层与维护契约：
 
 | 层 | 目录/文件 | 是否提交 | 作用 |
 | --- | --- | --- | --- |
-| 入口层 | `README.md`、`loop.md` | 是 | 项目入口和 agent 自主迭代协议 |
+| 入口层 | `README.md`、`Agent_loop.md` | 是 | 项目入口和 agent 自主迭代规划 |
 | 结论层 | `curated/` | 是 | 人工/agent 复核后的机制知识 |
 | 决策层 | `candidates/bitwise_ledger.csv` | 是 | 记录 include/defer/exclude 与下一步动作 |
 | 控制层 | `data/*.yaml` | 是 | schema、tag、alias、version claim |

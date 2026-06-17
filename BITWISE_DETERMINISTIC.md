@@ -1,31 +1,31 @@
 # Bitwise / Deterministic 主线
 
 状态：当前优先炼化方向。  
-目标：从 vLLM issue/PR 中提炼 deterministic decoding、bitwise equality、batch invariance、prefix-cache equivalence、KV cache identity、dtype/quantization drift 等问题的可复用知识。
+目标：把 vLLM issue/PR 中和 deterministic decoding、bitwise equality、batch invariance、prefix-cache equivalence、KV cache identity、dtype/quantization drift 相关的问题，整理成可复用的中文工程知识。
 
 ## 这条主线在解决什么
 
-在 vLLM 里，同一个 prompt、同一个模型、同样 `temperature=0`，仍可能因为以下因素产生不同输出：
+在 vLLM 里，同一个 prompt、同一个模型、同样 `temperature=0`，仍可能因为执行路径变化产生不同输出：
 
-- prefix cache hit / miss 走了不同 prefill 路径；
-- batch composition 改变了 kernel shape 或 reduction order；
+- prefix cache hit / miss 走了不同 prefill 几何；
+- batch composition 改变 kernel shape、graph capture 状态或 reduction order；
 - backend dispatch、autotune、split-K、atomic reduction 选择了不同路径；
 - FP8/FP4/MXFP4 等 dtype 与 scale layout 不一致；
-- 并发、LoRA、offload 或 block reuse 破坏了 KV cache identity；
-- verification 使用了过宽的 `allclose`，没有真正约束 bitwise 行为。
+- 并发、LoRA、offload 或 block reuse 破坏 KV cache identity；
+- verification 使用过宽的 `allclose`，没有真正约束 bitwise 行为。
 
 这类问题不是普通性能问题，而是 correctness contract 问题。
 
-## 当前产物
+## 当前结论层
 
 | 产物 | 作用 |
 | --- | --- |
-| [curated/bitwise_determinism.md](curated/bitwise_determinism.md) | bitwise/deterministic 总览页 |
-| [curated/bitwise/](curated/bitwise/) | 六个机制页 |
-| [curated/bitwise_review_queue.md](curated/bitwise_review_queue.md) | 684 条候选 issue 的复核队列 |
-| [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv) | 重点 claim 的 include/defer/exclude ledger |
-| [patterns/bitwise_determinism_equivalence.md](patterns/bitwise_determinism_equivalence.md) | 自动聚类出的 bitwise 候选证据 |
-| [BITWISE_EVIDENCE_SYNTHESIS.md](BITWISE_EVIDENCE_SYNTHESIS.md) | 第一轮 source-backed 机制综合 |
+| [curated/bitwise_determinism.md](curated/bitwise_determinism.md) | bitwise/deterministic 的 canonical 总览 |
+| [curated/bitwise/](curated/bitwise/) | 六个机制页，承载长期结论 |
+| [BITWISE_EVIDENCE_SYNTHESIS.md](BITWISE_EVIDENCE_SYNTHESIS.md) | 第一轮 targeted evidence 综合 |
+| [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv) | include/defer/exclude claim 账本 |
+
+本地可再生材料不提交到 GitHub，包括 `cases/`、`patterns/`、`domains/`、`indexes/`、`evidence/` 和 review queue。需要核对原始证据时，优先使用仓库外的 `E:\Vllm-Issue\all\data\targeted\bitwise`。
 
 ## 六个机制页
 
@@ -38,21 +38,20 @@
 
 ## 推荐阅读顺序
 
-1. 先读 [curated/bitwise_determinism.md](curated/bitwise_determinism.md) 建立全局图。
-2. 再读六个机制页，理解 recurring root mechanisms。
-3. 查看 [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv)，区分 include/defer/exclude。
-4. 从本地生成的 `curated/bitwise_review_queue.csv` 选下一批 issue 深读。
-5. 回到本地 `cases/` 页面或 `all/data/targeted/bitwise` JSON 核对原始 issue/PR 证据。
+1. 先读 [curated/bitwise_determinism.md](curated/bitwise_determinism.md)，建立全局图。
+2. 再读六个机制页，理解每类问题的触发条件、根因机制、修复方式和验证契约。
+3. 查看 [BITWISE_EVIDENCE_SYNTHESIS.md](BITWISE_EVIDENCE_SYNTHESIS.md)，了解第一轮证据如何支撑这些机制。
+4. 用 [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv) 区分已经纳入结论、暂缓和仍需补证的 claim。
 
 ## 当前证据状态
 
 - targeted bitwise evidence 已补到 `E:\Vllm-Issue\all\data\targeted\bitwise`。
-- 当前 evidence index 覆盖 785 个 issue JSON、242 个 PR JSON、676 个带评论 issue、240 个带 changed files PR。
-- 第一轮综合见 [BITWISE_EVIDENCE_SYNTHESIS.md](BITWISE_EVIDENCE_SYNTHESIS.md)。
+- 第一轮 evidence index 覆盖 785 个 issue JSON、242 个 PR JSON、676 个带评论 issue、240 个带 changed files PR。
+- `curated/` 是当前 GitHub 仓库中的结论层；自动分类和本地生成索引只能作为导航。
 
 ## 当前边界
 
-- 本地 `evidence/bitwise_sources.csv` 的 `mechanism_guess` 是自动分类，只能作为导航。
-- `patterns/` 是候选聚类，不能当作最终结论。
-- `curated/` 中的机制页仍应持续补充 source excerpt、边界和验证证据。
-- umbrella issue、无 linked fix 的 issue、只有关键词命中的旧 issue 仍应保持 `candidate` 或 `defer`。
+- `BITWISE_EVIDENCE_SYNTHESIS.md` 是第一轮综合，不是最终全集。
+- `candidates/bitwise_ledger.csv` 中 `defer` 的条目不能被当作 curated 结论。
+- umbrella issue、无 linked fix 的 issue、只有关键词命中的旧 issue，仍应保持 `candidate` 或 `defer`。
+- 后续新结论应优先下沉到六个机制页，而不是继续增加根目录文档。

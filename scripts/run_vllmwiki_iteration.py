@@ -19,9 +19,8 @@ SCRIPTS = WIKI / "scripts"
 CORE_LINK_FILES = [
     WIKI / "README.md",
     WIKI / "WIKI_IMPLEMENTATION.md",
-    WIKI / "ITERATION_PROTOCOL.md",
-    WIKI / "WIKI_REFINEMENT_FLOW.md",
-    WIKI / "QUALITY_GATE.md",
+    WIKI / "BITWISE_DETERMINISTIC.md",
+    WIKI / "BITWISE_EVIDENCE_SYNTHESIS.md",
     WIKI / "curated" / "bitwise_determinism.md",
 ]
 

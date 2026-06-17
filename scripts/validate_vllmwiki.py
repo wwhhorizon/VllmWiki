@@ -17,13 +17,10 @@ if hasattr(sys.stdout, "reconfigure"):
 
 REQUIRED = [
     "README.md",
-    "KERNELWIKI_REFINEMENT_NOTES.md",
     "WIKI_IMPLEMENTATION.md",
-    "ITERATION_PROTOCOL.md",
-    "WIKI_REFINEMENT_FLOW.md",
-    "QUALITY_GATE.md",
     "BITWISE_DETERMINISTIC.md",
     "BITWISE_EVIDENCE_SYNTHESIS.md",
+    "audit/manifest.md",
     "data/schemas.yaml",
     "data/tags.yaml",
     "data/aliases.yaml",
@@ -50,11 +47,7 @@ def check_links(errors: list[str], full: bool = False) -> None:
     else:
         files = [
             ROOT / "README.md",
-            ROOT / "KERNELWIKI_REFINEMENT_NOTES.md",
             ROOT / "WIKI_IMPLEMENTATION.md",
-            ROOT / "ITERATION_PROTOCOL.md",
-            ROOT / "WIKI_REFINEMENT_FLOW.md",
-            ROOT / "QUALITY_GATE.md",
             ROOT / "BITWISE_DETERMINISTIC.md",
             ROOT / "BITWISE_EVIDENCE_SYNTHESIS.md",
             ROOT / "curated" / "bitwise_determinism.md",
@@ -84,9 +77,13 @@ def check_links(errors: list[str], full: bool = False) -> None:
 
 
 def check_manifest(errors: list[str], warnings: list[str]) -> None:
+    manifest_md = ROOT / "audit" / "manifest.md"
+    if not manifest_md.exists():
+        errors.append("missing audit/manifest.md")
+        return
     manifest_path = ROOT / "audit" / "manifest.json"
     if not manifest_path.exists():
-        errors.append("missing manifest.json")
+        warnings.append("audit/manifest.json is local-generated and not present; skipped coverage numeric checks")
         return
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     coverage = manifest.get("coverage", {})

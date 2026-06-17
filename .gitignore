@@ -8,11 +8,14 @@ Thumbs.db
 
 # 可再生 source/index 层；原始与大规模机器证据保存在 E:\Vllm-Issue\all。
 cases/
+patterns/
+domains/
 indexes/
 evidence/*.csv
 evidence/*.md
 evidence/pattern_evidence.csv
 curated/bitwise_review_queue.csv
 curated/bitwise_review_queue.md
+audit/manifest.json
 audit/iteration_*.json
 audit/iteration_*.md

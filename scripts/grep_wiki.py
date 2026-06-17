@@ -16,18 +16,13 @@ if hasattr(sys.stdout, "reconfigure"):
 GROUPS = {
     "wiki": [
         "README.md",
-        "METHODOLOGY.md",
         "WIKI_IMPLEMENTATION.md",
-        "ITERATION_PROTOCOL.md",
-        "WIKI_REFINEMENT_FLOW.md",
-        "QUALITY_GATE.md",
-        "KERNELWIKI_REFINEMENT_NOTES.md",
+        "BITWISE_DETERMINISTIC.md",
+        "BITWISE_EVIDENCE_SYNTHESIS.md",
         "curated",
-        "patterns",
-        "domains",
     ],
     "cases": ["cases"],
-    "sources": ["indexes", "evidence", "candidates", "data"],
+    "sources": ["indexes", "evidence", "candidates", "data", "patterns", "domains"],
 }
 
 

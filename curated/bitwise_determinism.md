@@ -15,7 +15,8 @@
 - [量化与 Dtype 数值语义](bitwise/quant_dtype_numerical_semantics.md)
 - [Bitwise 工作的验证契约](bitwise/verification_contracts.md)
 - [Deterministic Dispatch 与 Reduction Control](bitwise/deterministic_dispatch_reduction.md)
-- [Bitwise 复核队列](bitwise_review_queue.md)
+
+本地复核队列 `curated/bitwise_review_queue.*` 属于可再生候选材料，不提交到 GitHub。稳定结论进入本页和六个机制页；待复核 claim 进入 [candidates/bitwise_ledger.csv](../candidates/bitwise_ledger.csv)。
 
 ## 优化手段
 

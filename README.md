@@ -1,61 +1,62 @@
 # VllmWiki
 
-VllmWiki 是一个从 `vllm-project/vllm` issue 与 PR 语料炼化出的 source-backed 工程知识库。
-项目效仿 KernelWiki 的组织方式，把原始材料拆成 source-adjacent 页面、候选模式、领域导航、curated 机制页、索引和质量门。
+VllmWiki 是一个从 `vllm-project/vllm` issue 与 PR 语料炼化出的中文工程知识库。它效仿 KernelWiki 的知识组织方式：原始材料留在本地，GitHub 仓库只保存可阅读、可维护、可追溯的结论层文档。
 
-## 项目概览
+当前主线是 **bitwise / deterministic**：解释 vLLM 中 deterministic decoding、bitwise equality、batch invariance、prefix-cache equivalence、KV cache identity、dtype/quantization drift 等问题为什么会发生、如何修复、怎样验证。
 
-| 项 | 数量 / 状态 |
-| --- | ---: |
-| 原始 issue JSONL 行数 | 16,243 |
-| 去重 issue 数 | 15,818 |
-| 原始 PR JSONL 行数 | 28,120 |
-| 去重 PR 表行数 | 8,931 |
-| Operator/kernel 候选 issue 数 | 7,239 |
-| 本地 issue-PR 链接 issue 数 | 1,275 |
-| 有评论计数但缺评论正文的 issue 数 | 14,271 |
-| Issue 状态 | closed=13,816, open=2,002 |
-| Case 分类 | correctness=3,748, performance=1,962, development=1,529 |
+## 阅读入口
+
+| 文档 | 作用 |
+| --- | --- |
+| [BITWISE_DETERMINISTIC.md](BITWISE_DETERMINISTIC.md) | 当前主线总览，说明问题边界、阅读顺序和六个机制页 |
+| [BITWISE_EVIDENCE_SYNTHESIS.md](BITWISE_EVIDENCE_SYNTHESIS.md) | 第一轮 targeted GitHub evidence 的综合结论 |
+| [curated/bitwise_determinism.md](curated/bitwise_determinism.md) | bitwise/deterministic 的机制总览与优化手段索引 |
+| [curated/bitwise/](curated/bitwise/) | 六个稳定机制页，按问题族组织 |
+| [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv) | 重点 claim 的 include/defer/exclude 账本 |
+| [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md) | 仓库结构、证据规则、质量门和迭代协议 |
 
 ## 文件树分工
 
 ```text
 VllmWiki/
-├── cases/                 # 本地生成：每个 issue 的 source-adjacent 页面
-├── patterns/              # 自动候选模式页，负责聚类而非定论
-├── domains/               # 按 vLLM 子系统组织的导航页
-├── curated/               # 人工/agent 复核后的机制知识页
-│   └── bitwise/           # bitwise/deterministic 六个机制页
-├── candidates/            # 候选 claim ledger，记录 include/defer/exclude
-├── data/                  # schema、tag、alias、version claim
-├── evidence/              # 本地生成：自动抽取的 evidence 表
-├── indexes/               # 本地生成：issue / PR 索引表
-├── audit/                 # manifest 与每轮迭代审计报告
-└── scripts/               # 生成、查询、验证和迭代脚本
+├── README.md                         # 项目概览与阅读入口
+├── BITWISE_DETERMINISTIC.md          # bitwise/deterministic 主线总览
+├── BITWISE_EVIDENCE_SYNTHESIS.md     # 第一轮证据综合
+├── WIKI_IMPLEMENTATION.md            # 维护规范、质量门与迭代协议
+├── curated/
+│   ├── bitwise_determinism.md        # bitwise 总览页
+│   └── bitwise/                      # 六个机制页
+├── candidates/
+│   └── bitwise_ledger.csv            # claim 状态账本
+├── data/                             # schema、tag、alias、version claim
+├── audit/
+│   └── manifest.md                   # 数据快照说明
+└── scripts/                          # 抓取、抽取、查询、验证脚本
 ```
 
-## 关键入口
+以下目录属于本地可再生材料，不作为 GitHub 结论层提交：`cases/`、`patterns/`、`domains/`、`indexes/`、`evidence/`、`curated/bitwise_review_queue.*`、`audit/iteration_*`。原始与 targeted 证据放在仓库外的 `E:\Vllm-Issue\all`。
 
-- [BITWISE_DETERMINISTIC.md](BITWISE_DETERMINISTIC.md)：当前重点主线，解释 bitwise/deterministic 的目标、产物和阅读顺序。
-- [BITWISE_EVIDENCE_SYNTHESIS.md](BITWISE_EVIDENCE_SYNTHESIS.md)：基于 targeted GitHub evidence 的第一轮 bitwise 机制综合。
-- [WIKI_REFINEMENT_FLOW.md](WIKI_REFINEMENT_FLOW.md)：VllmWiki 如何效仿 KernelWiki 做知识炼化。
-- [KERNELWIKI_REFINEMENT_NOTES.md](KERNELWIKI_REFINEMENT_NOTES.md)：KernelWiki 的 source/wiki/queries/schema/ledger/validate 构建方式。
-- [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md)：当前实现层次与证据规则。
-- [QUALITY_GATE.md](QUALITY_GATE.md)：质量门与防偷懒规则。
+## Bitwise 机制页
+
+- [Prefix Cache 等价](curated/bitwise/prefix_cache_equivalence.md)
+- [Batch Invariance 与 Kernel Geometry](curated/bitwise/batch_invariance_kernel_geometry.md)
+- [并发下的 KV Cache Identity](curated/bitwise/kv_cache_identity_concurrency.md)
+- [量化与 Dtype 数值语义](curated/bitwise/quant_dtype_numerical_semantics.md)
+- [Deterministic Dispatch 与 Reduction Control](curated/bitwise/deterministic_dispatch_reduction.md)
+- [Bitwise 工作的验证契约](curated/bitwise/verification_contracts.md)
 
 ## 常用命令
 
 ```powershell
+python scripts\validate_vllmwiki.py
 python scripts\query_vllmwiki.py bitwise --kind issue --limit 5
 python scripts\get_page.py 33123 --follow-sources
 python scripts\grep_wiki.py "deterministic prefix" --only wiki
-python scripts\validate_vllmwiki.py
-python scripts\run_vllmwiki_iteration.py
 ```
 
-## 阅读路线
+## 维护原则
 
-1. 先从根目录概览文档理解项目结构。
-2. 如果关注当前主线，直接进入 [BITWISE_DETERMINISTIC.md](BITWISE_DETERMINISTIC.md)。
-3. 查具体 issue 时使用本地 `cases/` 或 `all/data/targeted/bitwise`，查问题族时进入 `patterns/`，查子系统时进入 `domains/`。
-4. 只有 `curated/` 和 `candidates/` 中带证据状态的内容才接近可复用知识；自动聚类只作为候选导航。
+- GitHub 仓库只提交结论层、ledger、schema 和维护脚本，不提交大规模 raw/generated 页面。
+- `curated/` 中的结论必须能回链到 issue、PR、评论、diff 或本地 targeted evidence。
+- `candidates/bitwise_ledger.csv` 记录尚未 fully curated 的 claim，避免候选结论混入机制页。
+- 任何新机制页都要说明：观察现象、根因机制、修复方式、验证契约、适用边界和仍缺的证据。

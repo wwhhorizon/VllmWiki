@@ -18,16 +18,16 @@ if hasattr(sys.stdout, "reconfigure"):
 REQUIRED = [
     "README.md",
     "WIKI_IMPLEMENTATION.md",
-    "BITWISE_DETERMINISTIC.md",
-    "BITWISE_EVIDENCE_SYNTHESIS.md",
-    "BITWISE_NEXT.md",
+    "loop.md",
     "audit/manifest.md",
     "data/schemas.yaml",
     "data/tags.yaml",
     "data/aliases.yaml",
     "data/version-claims.yaml",
     "candidates/bitwise_ledger.csv",
-    "curated/bitwise_determinism.md",
+    "curated/bitwise/README.md",
+    "curated/bitwise/evidence_synthesis.md",
+    "curated/bitwise/next.md",
 ]
 
 
@@ -49,10 +49,10 @@ def check_links(errors: list[str], full: bool = False) -> None:
         files = [
             ROOT / "README.md",
             ROOT / "WIKI_IMPLEMENTATION.md",
-            ROOT / "BITWISE_DETERMINISTIC.md",
-            ROOT / "BITWISE_EVIDENCE_SYNTHESIS.md",
-            ROOT / "BITWISE_NEXT.md",
-            ROOT / "curated" / "bitwise_determinism.md",
+            ROOT / "loop.md",
+            ROOT / "curated" / "bitwise" / "README.md",
+            ROOT / "curated" / "bitwise" / "evidence_synthesis.md",
+            ROOT / "curated" / "bitwise" / "next.md",
             *sorted((ROOT / "curated" / "bitwise").glob("*.md")),
         ]
     for md in files:

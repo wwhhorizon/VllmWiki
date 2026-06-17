@@ -1,7 +1,7 @@
 # Deterministic Dispatch 与 Reduction Control
 
 状态：curated。  
-父页：[Bitwise 确定性与数值等价](../bitwise_determinism.md)。  
+父页：[Bitwise 确定性与数值等价](README.md)。
 范围：autotune candidate、backend dispatch、split-K、atomic reduction、fast/deterministic path 和 warmup 状态。
 
 ## 问题定义

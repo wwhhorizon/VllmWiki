@@ -1,7 +1,7 @@
 # Batch Invariance 与 Kernel Geometry
 
 状态：curated。  
-父页：[Bitwise 确定性与数值等价](../bitwise_determinism.md)。  
+父页：[Bitwise 确定性与数值等价](README.md)。
 范围：同一请求在单独运行、混 batch、并发 prefill/decode、first request 与 warmup 后的输出等价。
 
 ## 问题定义

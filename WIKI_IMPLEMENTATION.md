@@ -15,8 +15,8 @@ GitHub 仓库保存结论层与维护契约：
 
 | 层 | 目录/文件 | 是否提交 | 作用 |
 | --- | --- | --- | --- |
-| 入口层 | `README.md`、`BITWISE_DETERMINISTIC.md` | 是 | 项目入口和当前主线入口 |
-| 结论层 | `curated/`、`BITWISE_EVIDENCE_SYNTHESIS.md` | 是 | 人工/agent 复核后的机制知识 |
+| 入口层 | `README.md`、`loop.md` | 是 | 项目入口和 agent 自主迭代协议 |
+| 结论层 | `curated/` | 是 | 人工/agent 复核后的机制知识 |
 | 决策层 | `candidates/bitwise_ledger.csv` | 是 | 记录 include/defer/exclude 与下一步动作 |
 | 控制层 | `data/*.yaml` | 是 | schema、tag、alias、version claim |
 | 审计层 | `audit/manifest.md` | 是 | 数据快照和已知限制 |
@@ -126,7 +126,7 @@ bitwise 主线的持续迭代由 Codex agent 执行，而不是由脚本自动 p
 
 - 根据 ledger 选择有限数量的对象，说明为什么本轮读这些对象。
 - 精读 issue/PR body、changed files、patch、review comments、reviews、issue comments 和 timeline，区分观察现象、根因、修复、验证契约和边界。
-- 对每个对象给出明确处理：下沉到机制页、更新 ledger/BITWISE_NEXT 的阻塞原因，或保持现有状态。
+- 对每个对象给出明确处理：下沉到机制页、更新 ledger/专题 next queue 的阻塞原因，或保持现有状态。
 
 每轮 agent 明确不能做三件事：
 
@@ -143,7 +143,7 @@ bitwise 主线的持续迭代由 Codex agent 执行，而不是由脚本自动 p
 | `unresolved_review_risk` | PR body 或初始 patch 有价值，但 review comment 暴露的 correctness 风险尚未闭环。 |
 | `defer_blocked` | 缺 linked fix PR、changed files、test 或 maintainer resolution，不能 promotion。 |
 
-持续迭代的推荐节奏是：Codex agent 先按 ledger 选题，再深读对应原始 JSON、patch 和评论；只有当证据同时支撑根因、修复、验证契约和适用边界时，才更新机制页。如果只是发现新风险或缺口，应更新 `BITWISE_NEXT.md` 和 ledger 的 `blocking_reason`，保持 `defer` 或边界化 include。
+持续迭代的推荐节奏是：Codex agent 先按 ledger 选题，再深读对应原始 JSON、patch 和评论；只有当证据同时支撑根因、修复、验证契约和适用边界时，才更新机制页。如果只是发现新风险或缺口，应更新专题 next queue 和 ledger 的 `blocking_reason`，保持 `defer` 或边界化 include。
 
 ## 质量门
 
@@ -167,4 +167,4 @@ git ls-files cases patterns domains indexes evidence curated/bitwise_review_queu
 
 - 早期全量数据仍有大量 issue 缺评论正文；bitwise targeted evidence 已补齐一批评论和 PR detail，但不能外推到所有问题族。
 - 自动生成的 `patterns/`、`domains/`、`cases/` 只适合本地导航，不代表 curated 结论。
-- `BITWISE_EVIDENCE_SYNTHESIS.md` 是第一轮证据综合，后续稳定结论应继续下沉到 `curated/bitwise/*.md`。
+- `curated/bitwise/evidence_synthesis.md` 是 bitwise 第一轮证据综合，后续稳定结论应继续下沉到 `curated/bitwise/*.md`。

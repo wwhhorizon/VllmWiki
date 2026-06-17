@@ -1,7 +1,7 @@
 # Bitwise 工作的验证契约
 
 状态：curated。  
-父页：[Bitwise 确定性与数值等价](../bitwise_determinism.md)。  
+父页：[Bitwise 确定性与数值等价](README.md)。
 范围：bit-identical、strict tolerance、logprob/token equality、semantic equivalence 之间的验证边界。
 
 ## 问题定义

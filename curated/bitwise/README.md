@@ -9,14 +9,14 @@
 
 ## 机制页
 
-- [Prefix Cache 等价](bitwise/prefix_cache_equivalence.md)
-- [Batch Invariance 与 Kernel Geometry](bitwise/batch_invariance_kernel_geometry.md)
-- [并发下的 KV Cache Identity](bitwise/kv_cache_identity_concurrency.md)
-- [量化与 Dtype 数值语义](bitwise/quant_dtype_numerical_semantics.md)
-- [Bitwise 工作的验证契约](bitwise/verification_contracts.md)
-- [Deterministic Dispatch 与 Reduction Control](bitwise/deterministic_dispatch_reduction.md)
+- [Prefix Cache 等价](prefix_cache_equivalence.md)
+- [Batch Invariance 与 Kernel Geometry](batch_invariance_kernel_geometry.md)
+- [并发下的 KV Cache Identity](kv_cache_identity_concurrency.md)
+- [量化与 Dtype 数值语义](quant_dtype_numerical_semantics.md)
+- [Bitwise 工作的验证契约](verification_contracts.md)
+- [Deterministic Dispatch 与 Reduction Control](deterministic_dispatch_reduction.md)
 
-本地复核队列 `curated/bitwise_review_queue.*` 属于可再生候选材料，不提交到 GitHub。稳定结论进入本页和六个机制页；待复核 claim 进入 [candidates/bitwise_ledger.csv](../candidates/bitwise_ledger.csv)。
+本地复核队列 `curated/bitwise_review_queue.*` 属于可再生候选材料，不提交到 GitHub。稳定结论进入本页和六个机制页；待复核 claim 进入 [candidates/bitwise_ledger.csv](../../candidates/bitwise_ledger.csv)。
 
 ## 优化手段
 

@@ -1,7 +1,7 @@
 # Prefix Cache 等价
 
 状态：curated。  
-父页：[Bitwise 确定性与数值等价](../bitwise_determinism.md)。  
+父页：[Bitwise 确定性与数值等价](README.md)。
 范围：full prefill、prefix-cache miss、prefix-cache hit、prefix-cache bypass 之间的 deterministic 输出等价。
 
 ## 问题定义

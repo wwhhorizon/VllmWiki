@@ -1,7 +1,7 @@
 # 并发下的 KV Cache Identity
 
 状态：curated。  
-父页：[Bitwise 确定性与数值等价](../bitwise_determinism.md)。  
+父页：[Bitwise 确定性与数值等价](README.md)。
 范围：并发、offload、prefix sharing、LoRA/external KV、block reuse 和 metadata cleanup 下的 KV 身份一致性。
 
 ## 问题定义

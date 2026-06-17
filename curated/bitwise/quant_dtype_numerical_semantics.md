@@ -1,7 +1,7 @@
 # 量化与 Dtype 数值语义
 
 状态：curated seed，部分条目仍需 linked fix。  
-父页：[Bitwise 确定性与数值等价](../bitwise_determinism.md)。  
+父页：[Bitwise 确定性与数值等价](README.md)。
 范围：FP8/FP4/NVFP4/MXFP4、scale layout、dtype dispatch、LoRA path、fusion path 和 weight loading lifetime。
 
 ## 问题定义

@@ -17,8 +17,7 @@ GROUPS = {
     "wiki": [
         "README.md",
         "WIKI_IMPLEMENTATION.md",
-        "BITWISE_DETERMINISTIC.md",
-        "BITWISE_EVIDENCE_SYNTHESIS.md",
+        "loop.md",
         "curated",
     ],
     "cases": ["cases"],

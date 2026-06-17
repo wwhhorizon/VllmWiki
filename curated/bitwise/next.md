@@ -1,7 +1,7 @@
 # Bitwise 下一轮复核队列
 
 状态：active queue。  
-作用：记录下一轮要补证的 bitwise/deterministic 工作项。本文只放队列和缺口，不承载最终机制结论；稳定结论应下沉到 [curated/bitwise/](curated/bitwise/)。
+作用：记录下一轮要补证的 bitwise/deterministic 工作项。本文只放队列和缺口，不承载最终机制结论；稳定结论应下沉到 [本专题机制页](README.md)。
 
 ## 已完成本轮推进
 

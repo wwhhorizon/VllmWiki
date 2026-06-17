@@ -20,7 +20,7 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | Source | 证据事实 | 炼化结论 |
 | --- | --- | --- |
 | [#29086](https://github.com/vllm-project/vllm/pull/29086) | 将 `torch.allclose` revert 回 `torch.equal`，因为 draft/target model layer identity 不能用近似相等替代。 | cache/layer identity 必须 exact。 |
-| [#43355](https://github.com/vllm-project/vllm/pull/43355) | fused RoPE + KV cache write 增加 bit-identical tests，使用 `torch.testing.assert_close(..., rtol=0, atol=0)`；测试矩阵覆盖 cache dtype、MHA/GQA、NeoX layout、token count，并避免 duplicate slot mapping 的 last-write-wins nondeterminism。 | 性能 fusion 必须证明写入 KV 后仍 bit-identical。 |
+| [#43355](https://github.com/vllm-project/vllm/pull/43355) | fused RoPE + KV cache write 增加 bit-identical tests，使用 `torch.testing.assert_close(..., rtol=0, atol=0)`；测试矩阵覆盖 cache dtype、MHA/GQA、NeoX layout、token count，并避免 duplicate slot mapping 的 last-write-wins nondeterminism。review comments 还指出 FP8 path 若把 `raw_kv_scalar_t` 当浮点转换会错误、FlashAttention HND layout 可能导致 silent memory corruption、key/value row 数缺少 guard。 | 性能 fusion 必须证明写入 KV 后仍 bit-identical；review comment 暴露的 dtype/layout/shape guard 是验证矩阵必须覆盖的边界。 |
 | [#40179](https://github.com/vllm-project/vllm/pull/40179) | deterministic prefix caching e2e test 比较 cache miss 与 cache hit 输出。 | cache 状态变化必须被纳入测试矩阵。 |
 | [#39591](https://github.com/vllm-project/vllm/pull/39591) | concurrent prefill determinism test 和 block table unit tests 共同覆盖 stale metadata。 | 并发 determinism 需要系统级和 metadata 单元测试。 |
 | [#33123](https://github.com/vllm-project/vllm/issues/33123) | `temperature=0` 下 cache miss/hit 产生不同 token。 | token equality 可作为用户可见 correctness gate。 |
@@ -36,6 +36,7 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 3. cache 类问题覆盖 cache miss、cache hit、cache bypass、offload/restore。
 4. batch 类问题覆盖单请求、混 batch、并发 prefill/decode、first request 与 warmup 后。
 5. backend 类问题记录硬件、dtype、backend、graph/capture 状态、kernel config。
+6. fused KV write 类问题额外检查 dtype conversion 类型、KV cache layout、slot uniqueness、key/value tensor row 数 guard。
 
 ## 验证契约
 
@@ -50,6 +51,7 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 
 - exact identity 不能被 `allclose` 替代，尤其是 cache/layer/KV identity。
 - fused op 的验证要覆盖写入顺序和 slot mapping；duplicate slot 可能引入 last-write-wins nondeterminism。
+- `#43355` 的 review comments 应写成 boundary/risk：它们说明测试矩阵还应覆盖 FP8 conversion、HND/NHD layout、key/value size guard，但不能在没有后续 patch 确认时直接写成最终修复结论。
 - semantic answer match 只能作为补充，不支持 bitwise/deterministic claim。
 
 ## 仍需补证

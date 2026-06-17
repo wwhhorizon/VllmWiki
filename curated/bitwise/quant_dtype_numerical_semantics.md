@@ -24,7 +24,7 @@
 | [#36488](https://github.com/vllm-project/vllm/pull/36488) | MXFP4 MoE integration 未传入 batch-invariant flag，导致低精度 MoE 随 batch composition 改变 `block_m`/`split_k`。 | quant kernel config 是 bitwise contract 的一部分。 |
 | [#42007](https://github.com/vllm-project/vllm/issues/42007), [#42120](https://github.com/vllm-project/vllm/pull/42120) | MoE FP8 LoRA/base response corruption 与 LoRA path、precision hidden state 保存、early exit 有关。 | LoRA + MoE + FP8 要同时验证 base path 和 adapter path。 |
 | [#42325](https://github.com/vllm-project/vllm/issues/42325) | RMSNorm FP8 fusion 与 regular RMSNorm dtype 语义混淆。 | fusion path 需要独立记录 multiply dtype 和 reference boundary。 |
-| [#38991](https://github.com/vllm-project/vllm/issues/38991) | `runai_safetensors_weights_iterator` 产出的 tensors 是 shared numpy buffer view；加载到 CUDA 参数时 `copy_()` 可能是异步 cross-device copy，统一内存平台上 buffer lifetime/迭代顺序可能破坏 FP8/NVFP4 权重。 | 强问题描述，但缺 linked fix/file evidence，保持 defer。 |
+| [#38991](https://github.com/vllm-project/vllm/issues/38991) | `runai_safetensors_weights_iterator` 产出的 tensors 是 shared numpy buffer view；加载到 CUDA 参数时 `copy_()` 可能是异步 cross-device copy。issue 描述区分了统一内存平台和离散 GPU 平台：前者可能在同一物理内存上异步覆盖，后者则更像 DMA transfer 与 shared buffer lifetime 的竞态。 | insight 已清晰，但缺 linked fix/file evidence，保持 defer。 |
 
 ## 根因机制
 
@@ -37,6 +37,7 @@
 3. hardware guard 必须回答“数值语义是否一致”，不是只回答“kernel 能否运行”。
 4. 对 async loading 和 streaming buffer 记录 copy completion、buffer lifetime 和 iteration order。
 5. 用 exact 或严格 tolerance 测试 fusion path、regular path、LoRA path、base path。
+6. 对 loader/streamer 问题，不只记录“加载顺序”，还要记录 tensor 是否是 shared-buffer view、copy 是否跨设备异步、源 buffer 是否可能被 generator 提前复用。
 
 ## 验证契约
 

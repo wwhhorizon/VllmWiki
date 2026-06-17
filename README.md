@@ -15,7 +15,7 @@ VllmWiki 的核心不是一次性报告，而是持续炼化流程：
 5. 只有证据足够稳定的结论才下沉到 [curated/bitwise/](curated/bitwise/) 机制页。
 6. README 只保留项目概览和阅读路线；细节规则、质量门和模板放在 [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md)。
 
-这意味着仓库里的 `curated/` 是结论层，`candidates/` 是决策账本；本地生成的 `cases/`、`patterns/`、`domains/`、`indexes/`、`evidence/` 只作为迭代材料，不作为 GitHub 结论发布。持续迭代时，ledger 会先给出高优先级风险项，自动复核循环只生成本地 audit 草稿；人工精读后才决定是否更新机制页、ledger 和下一轮补证队列。
+这意味着仓库里的 `curated/` 是结论层，`candidates/` 是决策账本；本地生成的 `cases/`、`patterns/`、`domains/`、`indexes/`、`evidence/` 只作为迭代材料，不作为 GitHub 结论发布。持续迭代时，Codex agent 先根据 ledger 选择高优先级风险项，再精读本地 evidence，最后决定是否更新机制页、ledger 和下一轮补证队列。
 
 ## 阅读入口
 

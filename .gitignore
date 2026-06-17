@@ -19,5 +19,3 @@ curated/bitwise_review_queue.md
 audit/manifest.json
 audit/iteration_*.json
 audit/iteration_*.md
-audit/bitwise_cycle_*.json
-audit/bitwise_cycle_*.md

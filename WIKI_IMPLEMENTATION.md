@@ -118,21 +118,21 @@ Promotion 条件：
 - `candidate -> reviewed`：已读 issue body；有 linked PR 时已读 PR body；源文本支持机制；验证方式或缺失项已说明。
 - `reviewed -> curated`：root cause、fix、verification、scope boundary 都有证据；评论或 PR detail 缺口已关闭，或明确说明为什么不阻塞结论。
 
-## 持续复核循环
+## Codex Agent 迭代协议
 
-`scripts/run_bitwise_review_cycle.py` 是 bitwise 主线的最小自动迭代器。它从 `candidates/bitwise_ledger.csv` 读取候选项，默认选择 `priority=high` 且 `risk_status != stable` 的条目，再从仓库外的 `E:\Vllm-Issue\all\data\targeted\bitwise` 读取本地 targeted evidence，生成 `audit/bitwise_cycle_*.md` 或 `audit/bitwise_cycle_*.json`。
+bitwise 主线的持续迭代由 Codex agent 执行，而不是由脚本自动 promotion。每轮迭代先读取 `candidates/bitwise_ledger.csv`，优先选择 `priority=high` 且 `risk_status != stable` 的条目，再精读仓库外 `E:\Vllm-Issue\all\data\targeted\bitwise` 中的本地 targeted evidence。
 
-这个循环只做三件事：
+每轮 agent 必须完成三件事：
 
-- 根据 ledger 排序下一批应精读的对象。
-- 抽取 issue/PR body、changed files、patch excerpt、review comments、reviews、issue comments 和 timeline 摘录。
-- 为每个对象留下人工复核记录槽位，要求明确 root cause、fix 类型、exact test 覆盖、未覆盖边界，以及是否需要更新机制页。
+- 根据 ledger 选择有限数量的对象，说明为什么本轮读这些对象。
+- 精读 issue/PR body、changed files、patch、review comments、reviews、issue comments 和 timeline，区分观察现象、根因、修复、验证契约和边界。
+- 对每个对象给出明确处理：下沉到机制页、更新 ledger/BITWISE_NEXT 的阻塞原因，或保持现有状态。
 
-这个循环明确不做三件事：
+每轮 agent 明确不能做三件事：
 
-- 不联网补抓，避免把一次复核和证据采集耦合在一起。
-- 不自动修改 `curated/bitwise/*.md`、`BITWISE_NEXT.md` 或 ledger 的 decision。
-- 不把生成的 audit 草稿提交到 GitHub；草稿只是本地工作台，稳定结论仍然必须人工下沉到结论层。
+- 不能只凭标题、自动摘要或表格字段 promotion。
+- 不能把 review comment 暴露的风险写成已修复事实，除非 patch/test/maintainer resolution 已闭环。
+- 不能把仓库外 raw/generated evidence 重新加入 GitHub 结论层。
 
 `risk_status` 用来驱动复核策略：
 
@@ -143,7 +143,7 @@ Promotion 条件：
 | `unresolved_review_risk` | PR body 或初始 patch 有价值，但 review comment 暴露的 correctness 风险尚未闭环。 |
 | `defer_blocked` | 缺 linked fix PR、changed files、test 或 maintainer resolution，不能 promotion。 |
 
-持续迭代的推荐节奏是：先跑复核循环生成本地草稿，再人工深读草稿指向的原始 JSON、patch 和评论；只有当证据同时支撑根因、修复、验证契约和适用边界时，才更新机制页。如果只是发现新风险或缺口，应更新 `BITWISE_NEXT.md` 和 ledger 的 `blocking_reason`，保持 `defer` 或边界化 include。
+持续迭代的推荐节奏是：Codex agent 先按 ledger 选题，再深读对应原始 JSON、patch 和评论；只有当证据同时支撑根因、修复、验证契约和适用边界时，才更新机制页。如果只是发现新风险或缺口，应更新 `BITWISE_NEXT.md` 和 ledger 的 `blocking_reason`，保持 `defer` 或边界化 include。
 
 ## 质量门
 

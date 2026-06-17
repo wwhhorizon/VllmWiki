@@ -22,13 +22,14 @@ REQUIRED = [
     "ITERATION_PROTOCOL.md",
     "WIKI_REFINEMENT_FLOW.md",
     "QUALITY_GATE.md",
+    "BITWISE_DETERMINISTIC.md",
+    "BITWISE_EVIDENCE_SYNTHESIS.md",
     "data/schemas.yaml",
     "data/tags.yaml",
     "data/aliases.yaml",
     "data/version-claims.yaml",
     "candidates/bitwise_ledger.csv",
     "curated/bitwise_determinism.md",
-    "curated/bitwise_review_queue.csv",
 ]
 
 
@@ -54,8 +55,9 @@ def check_links(errors: list[str], full: bool = False) -> None:
             ROOT / "ITERATION_PROTOCOL.md",
             ROOT / "WIKI_REFINEMENT_FLOW.md",
             ROOT / "QUALITY_GATE.md",
+            ROOT / "BITWISE_DETERMINISTIC.md",
+            ROOT / "BITWISE_EVIDENCE_SYNTHESIS.md",
             ROOT / "curated" / "bitwise_determinism.md",
-            ROOT / "curated" / "bitwise_review_queue.md",
             *sorted((ROOT / "curated" / "bitwise").glob("*.md")),
         ]
     for md in files:
@@ -110,8 +112,23 @@ def check_bitwise_ledger(errors: list[str], warnings: list[str]) -> None:
     decisions = {row.get("decision", "") for row in rows}
     if not {"include", "defer"}.issubset(decisions):
         warnings.append("bitwise ledger should contain both include and defer decisions")
-    if not any(row.get("comments_status") == "missing" for row in rows):
-        warnings.append("bitwise ledger does not expose missing comment-body risk")
+    statuses = {row.get("comments_status", "") for row in rows}
+    if "fetched" not in statuses and not any(row.get("comments_status") == "missing" for row in rows):
+        warnings.append("bitwise ledger should expose either fetched comments or missing comment-body risk")
+    if not any(row.get("decision") == "defer" for row in rows):
+        warnings.append("bitwise ledger should keep unresolved evidence as defer instead of over-promoting")
+
+
+def check_bitwise_evidence(errors: list[str], warnings: list[str]) -> None:
+    path = ROOT / "evidence" / "bitwise_sources.csv"
+    if not path.exists():
+        return
+    rows = read_csv(path)
+    source_types = {row.get("source_type", "") for row in rows}
+    if len(rows) < 1000:
+        warnings.append(f"bitwise evidence index looks small: {len(rows)} rows")
+    if not {"issue", "pull"}.issubset(source_types):
+        errors.append(f"bitwise evidence index missing source types: {sorted(source_types)}")
 
 
 def check_curated_markers(errors: list[str], warnings: list[str]) -> None:
@@ -137,6 +154,7 @@ def main() -> int:
     check_links(errors, full=args.full)
     check_manifest(errors, warnings)
     check_bitwise_ledger(errors, warnings)
+    check_bitwise_evidence(errors, warnings)
     check_curated_markers(errors, warnings)
 
     status = "pass" if not errors else "fail"

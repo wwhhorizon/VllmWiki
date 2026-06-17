@@ -16,5 +16,5 @@ claims:
   comments-missing:
     statement: 本地有 issue 评论数量，但大量 issue 缺少评论正文。
     evidence:
-      - VllmWiki/indexes/issues.csv
+      - VllmWiki/audit/manifest.json
     implication: 依赖评论的 resolution 必须保持 candidate 或 blocked。

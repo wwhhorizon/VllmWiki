@@ -1,38 +1,35 @@
 # Batch Invariance 与 Kernel Geometry
 
-状态：reviewed seed page。  
-父页：[Bitwise 确定性与数值等价](../bitwise_determinism.md)
+状态：curated。  
+父页：[Bitwise 确定性与数值等价](../bitwise_determinism.md)。
 
 ## 契约
 
-同一个请求的输出不应因为无关请求进入同一个 batch 而改变。batch composition 可以改变吞吐与调度，但不能改变 deterministic decoding 的可见 token。
+同一个请求的输出不应因为其他无关请求进入同一个 batch 而改变。batch composition 可以改变吞吐、排队和调度，但不能改变 deterministic decoding 的可见 token。
 
 ## 机制
 
-Batch invariance 经常被 kernel geometry 打破：
+Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geometry：tokens-per-expert、batch size、sequence grouping 改变 `block_m`、`split_k`、tile choice、graph capture 或 backend path。低精度 MoE/FP4/FP8 路径中，scale layout 和 expert routing 会进一步放大这些差异。
 
-- tokens-per-expert、batch size、sequence grouping 改变 `block_m`、`split_k` 或 tile choice。
-- cuBLAS/Triton/CUTLASS/FlashInfer 可能为不同 shape 选择不同算法。
-- 不同 reduction order 或 atomic path 会产生不同舍入。
-- 低精度 MoE/FP4/FP8 路径中，scale layout 与 expert routing 会放大微小差异。
+## Source Evidence
 
-## Curated Case
-
-| Case | 观察 | 优化/修复 |
+| Source | 证据 | 炼化结论 |
 | --- | --- | --- |
-| [#27433](https://github.com/vllm-project/vllm/issues/27433) | Batch Invariant feature 与 performance optimization umbrella | candidate umbrella：需要拆成具体 PR/机制 |
-| [#36488](https://github.com/vllm-project/vllm/pull/36488) | MXFP4 MoE `matmul_ogs` 动态选择 `block_m`/`split_k` | 将 `VLLM_BATCH_INVARIANT` 传入 kernel config，强制稳定参数 |
-| [#42670](https://github.com/vllm-project/vllm/pull/42670) | FlashInfer + CUTLASS FP4 MoE invariant path 被 support gate 阻断 | 声明已有 invariant backend 支持，使 deterministic 路径可达 |
-| [#39096](https://github.com/vllm-project/vllm/issues/39096) | torch.compile/CUDA graphs 在 SM<90 上打破 batch invariance | candidate：需要审计 linked PR 与 exact failing config |
-| [#42513](https://github.com/vllm-project/vllm/issues/42513) | MTP eager mode 下 batch size 差异导致 token 不同 | candidate：kernel selection/graph capture 可能锁定或改变算法 |
+| [#27433](https://github.com/vllm-project/vllm/issues/27433) | batch invariant umbrella issue，已抓取 59 条评论和 177 条 timeline event。 | 这是索引入口，不应作为单条 curated measure。 |
+| [#36488](https://github.com/vllm-project/vllm/pull/36488) | MXFP4 MoE `matmul_ogs` 根据 tokens-per-expert 和 SM count 动态选择 `block_m`/`split_k`；PR 传入 `enforce_bitwise_invariance=True` 固定参数。 | batch invariant mode 必须传到实际 kernel config 层。 |
+| [#42670](https://github.com/vllm-project/vllm/pull/42670) | FlashInfer + CUTLASS FP4 MoE 已有 invariant code path，但 support gate 继承 `False`，导致 `VLLM_BATCH_INVARIANT=1` 不可达。 | deterministic path 不只要实现，还要被 backend selector 暴露。 |
+| [#33537](https://github.com/vllm-project/vllm/pull/33537) | first real request 可能受 CUDA graph、Triton JIT、cache/allocator warmup 影响；PR 增加 deterministic warmup automation。 | batch invariance 要覆盖冷启动和 steady state。 |
+| [#39096](https://github.com/vllm-project/vllm/issues/39096) | torch.compile/CUDA graphs 在 SM<90 上打破 batch invariance。 | 保持 defer，需要继续确认 linked PR 和 exact failing config。 |
+| [#42513](https://github.com/vllm-project/vllm/issues/42513) | MTP eager mode 下 batch size/verification shape 差异导致 token 不同。 | candidate，需 linked fix/test review。 |
 
 ## Fix Pattern
 
-1. 找出 batch composition 改变的 kernel config：`block_m`、`split_k`、tile、backend、graph capture。
-2. 在 deterministic/batch-invariant mode 下固定这些 config。
-3. 如果固定代价太高，拆分 fast path 与 deterministic path。
-4. 测试同一请求在单独运行、混 batch、并发 prefill/decode 下是否一致。
+1. 找出 batch composition 改变的 kernel config：`block_m`、`split_k`、tile、backend、graph capture、tokens-per-expert。
+2. 在 deterministic/batch-invariant mode 下固定这些 config，或拆分 fast path 与 deterministic path。
+3. 确认 support gate、backend selector、MoE oracle 都能到达 invariant path。
+4. 测试同一请求在单独运行、混 batch、并发 prefill/decode、first request 和 warmup 后的输出。
+5. 对 quantized MoE 同时记录 scale layout、expert routing 和 hardware SM count。
 
 ## Open Review Queue
 
-使用 [bitwise_review_queue.csv](../bitwise_review_queue.csv) 中 cluster 为 `batch_invariance` 的行。
+下一轮优先拆 `#27433` 中的 umbrella 讨论，把具体 PR 映射到单独机制，不把 umbrella issue 当结论。

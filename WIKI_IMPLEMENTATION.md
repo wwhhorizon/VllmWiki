@@ -18,8 +18,8 @@ VllmWiki 主要效仿 KernelWiki 的知识库构建方式：source pages、wiki 
 | KernelWiki 概念 | VllmWiki 实现 |
 | --- | --- |
 | `sources/` raw layer | `all/data/raw/*.jsonl`、`all/data/tables/*.csv`、[audit/manifest.md](audit/manifest.md)、case 页源摘录 |
-| `wiki/` synthesized layer | [curated/**](curated/bitwise_determinism.md)、[patterns/**](patterns/bitwise_determinism_equivalence.md)、[domains/**](domains/attention_kv_cache.md)、[cases/**](cases/33xxx/33123-bug-rocm-prefix-caching-produces-different-output-on-first-request-cac.md) |
-| `queries/` generated index layer | [indexes/issues.csv](indexes/issues.csv)、[indexes/prs.csv](indexes/prs.csv)、[evidence/pattern_evidence.csv](evidence/pattern_evidence.csv)、`scripts/` 查询工具 |
+| `wiki/` synthesized layer | [curated/**](curated/bitwise_determinism.md)、[patterns/**](patterns/bitwise_determinism_equivalence.md)、[domains/**](domains/attention_kv_cache.md)、本地生成的 `cases/**` |
+| `queries/` generated index layer | 本地生成的 `indexes/issues.csv`、`indexes/prs.csv`、`evidence/pattern_evidence.csv`、`scripts/` 查询工具 |
 | `data/schemas.yaml` | [data/schemas.yaml](data/schemas.yaml)：case、pattern、mechanism、ledger 的必填字段 |
 | `data/tags.yaml` / `aliases.yaml` | [data/tags.yaml](data/tags.yaml)、[data/aliases.yaml](data/aliases.yaml)：受控 bitwise 词表 |
 | `data/version-claims.yaml` | [data/version-claims.yaml](data/version-claims.yaml)：数据快照和 KernelWiki 参考版本声明 |
@@ -31,7 +31,7 @@ VllmWiki 主要效仿 KernelWiki 的知识库构建方式：source pages、wiki 
 | 层 | 目的 | 当前产物 |
 | --- | --- | --- |
 | Source layer | 保留本地 raw issue/PR 文本和 hash | `all/data/raw/*.jsonl`、[audit/manifest.md](audit/manifest.md) |
-| Evidence layer | 抽取 source snippet 和候选链接，不伪装成最终真相 | [evidence/pattern_evidence.csv](evidence/pattern_evidence.csv)、[indexes/issues.csv](indexes/issues.csv)、[indexes/prs.csv](indexes/prs.csv) |
+| Evidence layer | 抽取 source snippet 和候选链接，不伪装成最终真相 | 本地生成的 `evidence/pattern_evidence.csv`、`indexes/issues.csv`、`indexes/prs.csv` |
 | Candidate wiki layer | 为每个 issue 和主要 pattern 生成页面，避免信息消失 | `cases/**`、`patterns/**`、`domains/**` |
 | Curated mechanism layer | 把反复出现的机制提升成人类可读 lesson | [curated/bitwise_determinism.md](curated/bitwise_determinism.md)、`curated/bitwise/**` |
 | Governance layer | 定义质量门、状态标签和迭代协议 | [QUALITY_GATE.md](QUALITY_GATE.md)、[ITERATION_PROTOCOL.md](ITERATION_PROTOCOL.md) |

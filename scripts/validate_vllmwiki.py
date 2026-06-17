@@ -102,8 +102,9 @@ def check_bitwise_ledger(errors: list[str], warnings: list[str]) -> None:
     rows = read_csv(path)
     required = {
         "id", "source_type", "source_number", "mechanism", "decision", "source_read",
-        "pr_read", "comments_status", "evidence_strength", "blocking_reason",
-        "target_evidence", "last_reviewed_at", "promotion_reason", "next_action",
+        "pr_read", "comments_status", "risk_status", "priority", "review_depth",
+        "evidence_strength", "blocking_reason", "target_evidence",
+        "last_reviewed_at", "promotion_reason", "next_action",
     }
     if rows:
         missing = required.difference(rows[0])
@@ -117,6 +118,23 @@ def check_bitwise_ledger(errors: list[str], warnings: list[str]) -> None:
         warnings.append("bitwise ledger should expose either fetched comments or missing comment-body risk")
     if not any(row.get("decision") == "defer" for row in rows):
         warnings.append("bitwise ledger should keep unresolved evidence as defer instead of over-promoting")
+    allowed_risk = {"stable", "include_with_boundary", "defer_blocked", "unresolved_review_risk"}
+    bad_risk = sorted({row.get("risk_status", "") for row in rows} - allowed_risk)
+    if bad_risk:
+        errors.append(f"bitwise ledger has unknown risk_status values: {bad_risk}")
+    allowed_priority = {"high", "medium", "low"}
+    bad_priority = sorted({row.get("priority", "") for row in rows} - allowed_priority)
+    if bad_priority:
+        errors.append(f"bitwise ledger has unknown priority values: {bad_priority}")
+    allowed_depth = {"curated", "followup_patch", "linked_fix_search", "umbrella_split"}
+    bad_depth = sorted({row.get("review_depth", "") for row in rows} - allowed_depth)
+    if bad_depth:
+        errors.append(f"bitwise ledger has unknown review_depth values: {bad_depth}")
+    for row in rows:
+        if row.get("decision") == "defer" and row.get("risk_status") != "defer_blocked":
+            warnings.append(f"defer row should normally use defer_blocked risk_status: {row.get('id')}")
+        if row.get("risk_status") == "stable" and row.get("decision") != "include":
+            warnings.append(f"stable risk_status should normally be include: {row.get('id')}")
 
 
 def check_bitwise_evidence(errors: list[str], warnings: list[str]) -> None:

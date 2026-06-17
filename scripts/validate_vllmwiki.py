@@ -20,6 +20,7 @@ REQUIRED = [
     "WIKI_IMPLEMENTATION.md",
     "BITWISE_DETERMINISTIC.md",
     "BITWISE_EVIDENCE_SYNTHESIS.md",
+    "BITWISE_NEXT.md",
     "audit/manifest.md",
     "data/schemas.yaml",
     "data/tags.yaml",
@@ -50,6 +51,7 @@ def check_links(errors: list[str], full: bool = False) -> None:
             ROOT / "WIKI_IMPLEMENTATION.md",
             ROOT / "BITWISE_DETERMINISTIC.md",
             ROOT / "BITWISE_EVIDENCE_SYNTHESIS.md",
+            ROOT / "BITWISE_NEXT.md",
             ROOT / "curated" / "bitwise_determinism.md",
             *sorted((ROOT / "curated" / "bitwise").glob("*.md")),
         ]
@@ -100,7 +102,8 @@ def check_bitwise_ledger(errors: list[str], warnings: list[str]) -> None:
     rows = read_csv(path)
     required = {
         "id", "source_type", "source_number", "mechanism", "decision", "source_read",
-        "pr_read", "comments_status", "promotion_reason", "next_action",
+        "pr_read", "comments_status", "evidence_strength", "blocking_reason",
+        "target_evidence", "last_reviewed_at", "promotion_reason", "next_action",
     }
     if rows:
         missing = required.difference(rows[0])

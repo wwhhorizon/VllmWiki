@@ -25,6 +25,7 @@ VllmWiki 的核心不是一次性报告，而是持续炼化流程：
 | [curated/bitwise_determinism.md](curated/bitwise_determinism.md) | bitwise/deterministic 的机制总览与优化手段索引 |
 | [curated/bitwise/](curated/bitwise/) | 六个稳定机制页，按问题族组织长期结论 |
 | [BITWISE_EVIDENCE_SYNTHESIS.md](BITWISE_EVIDENCE_SYNTHESIS.md) | 第一轮 targeted GitHub evidence 的综合结论 |
+| [BITWISE_NEXT.md](BITWISE_NEXT.md) | 下一轮补证队列，只记录缺口和复核顺序 |
 | [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv) | 重点 claim 的 include/defer/exclude 账本 |
 | [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md) | 仓库结构、证据规则、质量门和迭代协议 |
 
@@ -35,6 +36,7 @@ VllmWiki/
 ├── README.md                         # 项目概览、迭代流程和阅读路线
 ├── BITWISE_DETERMINISTIC.md          # bitwise/deterministic 主线入口
 ├── BITWISE_EVIDENCE_SYNTHESIS.md     # 第一轮证据综合
+├── BITWISE_NEXT.md                   # 下一轮补证队列
 ├── WIKI_IMPLEMENTATION.md            # 维护规范、质量门与机制页模板
 ├── curated/
 │   ├── bitwise_determinism.md        # bitwise 总览页

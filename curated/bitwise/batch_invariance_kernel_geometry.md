@@ -24,7 +24,7 @@
 | [#36488](https://github.com/vllm-project/vllm/pull/36488) | MXFP4 MoE `matmul_ogs` 根据 tokens-per-expert 和 SM count 动态选择 `block_m`/`split_k`；PR 传入 `enforce_bitwise_invariance=True` 固定参数。 | batch invariant mode 必须传到实际 kernel config 层。 |
 | [#42670](https://github.com/vllm-project/vllm/pull/42670) | FlashInfer + CUTLASS FP4 MoE 已有 invariant code path，但 support gate 继承 `False`，导致 `VLLM_BATCH_INVARIANT=1` 不可达。 | deterministic path 不只要实现，还要被 backend selector 暴露。 |
 | [#33537](https://github.com/vllm-project/vllm/pull/33537) | first real request 可能受 CUDA graph、Triton JIT、cache/allocator warmup 影响；PR 增加 deterministic warmup automation。 | batch invariance 要覆盖冷启动和 steady state。 |
-| [#39096](https://github.com/vllm-project/vllm/issues/39096) | SM<90 GPU 上，`VLLM_BATCH_INVARIANT=1` 与 `torch.compile` 或 CUDA graphs 组合时不能保持 batch-invariant 输出；issue 同时指出单独的 compiled RMSNorm 在 L4 上可 bitwise equal。 | 保持 defer，需要确认 linked PR、exact failing config 和根因归属。 |
+| [#39096](https://github.com/vllm-project/vllm/issues/39096), [#38938](https://github.com/vllm-project/vllm/pull/38938) | SM<90 GPU 上，`VLLM_BATCH_INVARIANT=1` 与 `torch.compile` 或 CUDA graphs 组合时不能保持 batch-invariant 输出；PR #38938 将问题拆成两个修复点：`ParallelLMHead` 使用的 `UnquantizedEmbeddingMethod.apply` 漏掉 batch-invariant GEMM 路由，以及 SM<90 下 `torch.compile` + CUDA graph 组合需要 enforce-eager 边界。 | 可以 promotion 为具体机制：batch invariance 必须覆盖 final logits projection 和 compile/graph support gate。 |
 | [#42513](https://github.com/vllm-project/vllm/issues/42513) | MTP eager mode 下 batch size/verification shape 差异导致 token 不同。 | candidate，需 linked fix/test review。 |
 
 ## 根因机制
@@ -48,10 +48,10 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 ## 适用边界
 
 - `#27433` 是 umbrella，不直接 promotion。
-- `#39096` 仍处于 defer：已有强问题描述，但缺 linked PR 与 exact failing config 的闭环。
+- `#39096/#38938` 已能支持 final logits projection 与 SM<90 compile/graph 边界这两个具体机制；但不要外推为所有 torch.compile 场景都不支持 batch invariance。
 - batch invariance 与 deterministic dispatch/reduction 机制高度交叉；当根因是 split-K/atomic/autotune，应交叉写入 dispatch 页。
 
 ## 仍需补证
 
-- 审计 `#39096` 的 linked PR `#38938`、失败配置和最终修复边界。
+- 继续补充 `#38938` review comments 中关于 L4/H100 test placement、`enforce_eager` 边界和 CI 分组的细节。
 - 继续拆 `#27433` 中的 umbrella 讨论，把具体 PR 映射到单独机制，不把 umbrella issue 当结论。

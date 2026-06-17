@@ -108,6 +108,9 @@ def check_bitwise_ledger(errors: list[str], warnings: list[str]) -> None:
         missing = required.difference(rows[0])
         if missing:
             errors.append(f"bitwise ledger missing columns: {sorted(missing)}")
+    malformed = [row.get("id", "<missing id>") for row in rows if row.get(None)]
+    if malformed:
+        errors.append(f"bitwise ledger has malformed CSV rows with extra fields: {malformed}")
     decisions = {row.get("decision", "") for row in rows}
     if not {"include", "defer"}.issubset(decisions):
         warnings.append("bitwise ledger should contain both include and defer decisions")

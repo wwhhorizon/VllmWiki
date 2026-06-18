@@ -17,6 +17,8 @@
 | [#42670](https://github.com/vllm-project/vllm/pull/42670) | include + boundary | FlashInfer/CUTLASS FP4 MoE 已有 batch-invariant code path，但 support gate 继承 base-class `False`，导致 `VLLM_BATCH_INVARIANT=1` 不可达；PR 用两个 capability override 暴露路径，并以 MiniMax-M2 NVFP4 并发复现的相同 sha256 证明 workaround 有效。仍 open，且模型级复现不适合 CI。 |
 | [#42007](https://github.com/vllm-project/vllm/issues/42007) / [#42120](https://github.com/vllm-project/vllm/pull/42120) | include + boundary | FP8 MoE LoRA corruption 拆成两个契约：LoRA kernel 需要原始 BF16/FP16 activation，而 base GEMM 需要量化 activation；无 active LoRA 的 base batch 必须按 `no_lora_flag` 早退，避免 stale mapping 写坏输出。PR 有 approval 和 Blackwell 验证，但仍 open，且 wrong input dtype 单测欠缺。 |
 | [#42325](https://github.com/vllm-project/vllm/issues/42325) / [#42379](https://github.com/vllm-project/vllm/pull/42379) | include | RMSNorm native-dtype multiply fix 已 merged，并同步 regular/fused quant path；但后续评论对 Python IR 是否是 CUDA spec 有争议，因此结论边界写成“已合并 native-dtype behavior + 现有测试覆盖”，不把某一侧实现扩展成通用规范。 |
+| [#39146](https://github.com/vllm-project/vllm/issues/39146) / [#39283](https://github.com/vllm-project/vllm/pull/39283) / [#43741](https://github.com/vllm-project/vllm/pull/43741) | include + boundary | recycled KV block zeroing 需要两个 gate：`needs_kv_cache_zeroing` 覆盖 FullAttentionSpec family，manager 用 `isinstance` 把所有 FullAttentionSpec 子类的新 block id 送进 zeroing pipeline。`#43741` 仍 open，unit tests 强但 patched e2e 还要追踪。 |
+| [#25404](https://github.com/vllm-project/vllm/issues/25404) / [#25603](https://github.com/vllm-project/vllm/pull/25603) | include | merged PR 提供 batch-invariant mode 的首批 C++/Python/env hook 和 kernel override plumbing；review 后把命名从 deterministic 收敛为 batch invariant，并补 logprob bit equality。结论边界是“plumbing 已有”，不是“所有 kernel 已覆盖”。 |
 
 ## Must Review
 
@@ -36,6 +38,8 @@
 | [#42670](https://github.com/vllm-project/vllm/pull/42670) | batch invariance support gate | 追踪 PR merge/CI；若继续推进，优先补轻量 selector/support-gate 测试，证明 `VLLM_BATCH_INVARIANT=1` 下 FlashInfer 与 CUTLASS FP4 MoE 不再被 `False` gate 拦截。 |
 | [#42120](https://github.com/vllm-project/vllm/pull/42120) | quant/dtype LoRA MoE | 追踪 PR merge；补 wrong-input-dtype regression，以及 routed-expert LoRA weights 非零时的 adapter path 验证。 |
 | [#42325](https://github.com/vllm-project/vllm/issues/42325) / [#42379](https://github.com/vllm-project/vllm/pull/42379) | RMSNorm dtype semantics | 若后续 maintainer 重新定义 CUDA reference 为 FP32 multiply，要同步改机制页的 reference boundary。 |
+| [#43741](https://github.com/vllm-project/vllm/pull/43741) | recycled KV block zeroing | 追踪 PR merge；若最终 patch 改动，确认 spec gate、`new_block_ids` tracking 和 patched e2e validation 都保留。 |
+| [#25603](https://github.com/vllm-project/vllm/pull/25603) | batch-invariant plumbing | 后续检查更多 kernels 是否接入 `VLLM_BATCH_INVARIANT`，尤其是 review 中提到的 multidim `torch.sum` / mean deterministic reduction。 |
 
 ## 不应 Promotion 的情况
 

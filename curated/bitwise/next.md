@@ -26,6 +26,11 @@
 | [#35569](https://github.com/vllm-project/vllm/issues/35569) / [#39849](https://github.com/vllm-project/vllm/pull/39849) | include + boundary | ROCM_ATTN 对 Qwen3-VL reranker 的 score drift 可先通过 selector workaround 管控：open PR 把 gfx9 上 gqa_ratio 2/4 的 native `mfma4` path 路由回 Triton；缺 merge 与 patched reranker e2e score regression。 |
 | [#42125](https://github.com/vllm-project/vllm/issues/42125) | strong defer | same-name runtime LoRA A->B reload 的复现矩阵强，no-prefix、`cache_salt`、first-block change、cold B、unique-name controls 都指向 adapter-version cache identity；但缺 linked PR、changed files、maintainer resolution 和 regression test。 |
 | [#42513](https://github.com/vllm-project/vllm/issues/42513) | defer | MTP eager vs non-MTP 的 batch-size/kernel-selection 链路有 insight，但本地 evidence 只有 issue body；closed state 缺 closure reason、linked fix 和测试，不能 promotion。 |
+| [#29581](https://github.com/vllm-project/vllm/issues/29581) / [#38670](https://github.com/vllm-project/vllm/pull/38670) | include | AWQ batch invariance 的关键不是修 sampler，而是在 BI mode 下阻止 AWQ 自动转换到不可控的 AWQ_Marlin fused kernel，回到 dequant + `torch.matmul`，让 BI override 接管；merged PR 有 AWQ before/after、H200 验证和 approval。 |
+| [#30018](https://github.com/vllm-project/vllm/pull/30018) | include + boundary | FA2 split 有直接 patch 证据；LoRA 有 PR body、测试矩阵和 review 支持，1000 请求并发测试 distinct outputs 收敛到 1；但 landed-code 子路径仍需复核，且本地评论明确不支持 CUDA graph，测试依赖 `enforce_eager`。 |
+| [#33688](https://github.com/vllm-project/vllm/pull/33688) | include | TRITON_ATTN 通过强制 2D Triton unified attention path 成为 decode-invariant backend；B200 和 GPT-OSS/Qwen logprob test 从 128/128 prompts fail 到通过。 |
+| [#40408](https://github.com/vllm-project/vllm/pull/40408) | include | Cutlass FP8 direct path 可以进入 BI mode，但前提是 config independent of `M`；merged PR 为 sm89/sm90/sm100/sm120 增加 fixed-config dispatch 和多 batch size/M 维测试。 |
+| [#40413](https://github.com/vllm-project/vllm/pull/40413) | include | fused add RMSNorm 已有 batch-invariant 证据，BI mode 下不应无谓改走 Triton RMSNorm；merged PR 保留 fused op，并补 residual path FP16/BF16 测试。 |
 
 ## Must Review
 
@@ -55,6 +60,11 @@
 | [#33537](https://github.com/vllm-project/vllm/pull/33537) | cold-start warmup | 只在找到 first-request token/logprob divergence 复现后再提升；否则保持 latency/warmup boundary。 |
 | [#32561](https://github.com/vllm-project/vllm/pull/32561) | cascade attention gate | 后续只追踪评论拆出的独立问题：FlashInfer CTA tile/chunked prefill、MLA、MoE router gate、AWQ 长输出；不要把这些缺口归到 cascade attention fix 本身。 |
 | [#39849](https://github.com/vllm-project/vllm/pull/39849) | ROCm backend selector workaround | 追踪 PR merge/CI；补 patched Qwen3-VL reranker score regression，并确认 gfx9 gqa_ratio 2/4 以外 shape 未误路由。 |
+| [#38670](https://github.com/vllm-project/vllm/pull/38670) | AWQ/Marlin batch invariance | 只在后续出现 deterministic AWQ_Marlin fused path 后再改结论；当前维持“BI mode 绕开 Marlin”的性能换确定性边界。 |
+| [#30018](https://github.com/vllm-project/vllm/pull/30018) | FA2/LoRA batch invariance | 查找后续 CUDA graph compatible FA2 BI patch，并补 LoRA landed-code split-K 子路径；未闭环前不要把 `enforce_eager` 测试外推到 CUDA graph serving。 |
+| [#33688](https://github.com/vllm-project/vllm/pull/33688) | TRITON_ATTN backend coverage | 追踪 MLA、FlashInfer、chunked prefill 和其他 Triton attention variant 是否进入 decode-invariant backend list。 |
+| [#40408](https://github.com/vllm-project/vllm/pull/40408) | Cutlass FP8 fixed-config path | 后续 Cutlass FP8 tuning 改动都要重新检查 config 是否仍 independent of `M`，并跑多 batch-size/M 维测试。 |
+| [#40413](https://github.com/vllm-project/vllm/pull/40413) | fused add RMSNorm | 审查其他 fused norm/quant op 是否有同等 BI 证据；没有测试前不要套用该结论。 |
 
 ## 不应 Promotion 的情况
 

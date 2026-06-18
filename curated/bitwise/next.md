@@ -14,6 +14,9 @@
 | [#43355](https://github.com/vllm-project/vllm/pull/43355) | include + risk | PR 的 bit-identical test 有价值；本轮深读修正了风险状态：HND/NHD layout gate 与 key/value row guard 已在 patch 中出现，FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，且 PR 仍 open/unmerged、有 merge conflict 提醒。 |
 | [#44250](https://github.com/vllm-project/vllm/issues/44250) | strong defer | issue body 和评论已足以支持 external KV key 缺 adapter identity 的 root-cause 方向；但评论中的 `lora_name` patch 只是本地对照实验，未证明上游 MP connector、vLLM vendored connector 和 regression test 已闭环。 |
 | [#42699](https://github.com/vllm-project/vllm/issues/42699) / [#40896](https://github.com/vllm-project/vllm/issues/40896) | defer | prefix-read/no-prefix-read 与 cold/warm prefix cache 的 greedy token 差异更像 BF16 batch/kernel geometry 边界：评论显示 `fp32` 或 `VLLM_BATCH_INVARIANT=1` 可让输出收敛，但缺 linked fix PR 和 regression test。 |
+| [#42670](https://github.com/vllm-project/vllm/pull/42670) | include + boundary | FlashInfer/CUTLASS FP4 MoE 已有 batch-invariant code path，但 support gate 继承 base-class `False`，导致 `VLLM_BATCH_INVARIANT=1` 不可达；PR 用两个 capability override 暴露路径，并以 MiniMax-M2 NVFP4 并发复现的相同 sha256 证明 workaround 有效。仍 open，且模型级复现不适合 CI。 |
+| [#42007](https://github.com/vllm-project/vllm/issues/42007) / [#42120](https://github.com/vllm-project/vllm/pull/42120) | include + boundary | FP8 MoE LoRA corruption 拆成两个契约：LoRA kernel 需要原始 BF16/FP16 activation，而 base GEMM 需要量化 activation；无 active LoRA 的 base batch 必须按 `no_lora_flag` 早退，避免 stale mapping 写坏输出。PR 有 approval 和 Blackwell 验证，但仍 open，且 wrong input dtype 单测欠缺。 |
+| [#42325](https://github.com/vllm-project/vllm/issues/42325) / [#42379](https://github.com/vllm-project/vllm/pull/42379) | include | RMSNorm native-dtype multiply fix 已 merged，并同步 regular/fused quant path；但后续评论对 Python IR 是否是 CUDA spec 有争议，因此结论边界写成“已合并 native-dtype behavior + 现有测试覆盖”，不把某一侧实现扩展成通用规范。 |
 
 ## Must Review
 
@@ -30,6 +33,9 @@
 | [#40179](https://github.com/vllm-project/vllm/pull/40179) | prefix cache 等价 | 继续追踪 follow-up patch：用 `num_computed_tokens` 判断 prefill、用 `(num_prompt_tokens - 1)` 计算 block boundary，并补 resumed request 与 block-aligned prompt 回归测试。 |
 | [#42240](https://github.com/vllm-project/vllm/pull/42240) | deterministic reduction | 继续追踪 PR 是否转为 ready/merged，以及上游 AITER 是否落地 deterministic split-K 修复；当前仍按 scoped workaround 维护，不外推到非 128x128 block-scaled shape。 |
 | [#43355](https://github.com/vllm-project/vllm/pull/43355) | verification contract | 追踪 FP8 conversion 是否改为 `qk_t`/浮点输入，以及 NHD layout gate、key/value row guard 是否被 maintainer 接受并进入最终合并版本；未闭环前只作为 verification boundary/risk。 |
+| [#42670](https://github.com/vllm-project/vllm/pull/42670) | batch invariance support gate | 追踪 PR merge/CI；若继续推进，优先补轻量 selector/support-gate 测试，证明 `VLLM_BATCH_INVARIANT=1` 下 FlashInfer 与 CUTLASS FP4 MoE 不再被 `False` gate 拦截。 |
+| [#42120](https://github.com/vllm-project/vllm/pull/42120) | quant/dtype LoRA MoE | 追踪 PR merge；补 wrong-input-dtype regression，以及 routed-expert LoRA weights 非零时的 adapter path 验证。 |
+| [#42325](https://github.com/vllm-project/vllm/issues/42325) / [#42379](https://github.com/vllm-project/vllm/pull/42379) | RMSNorm dtype semantics | 若后续 maintainer 重新定义 CUDA reference 为 FP32 multiply，要同步改机制页的 reference boundary。 |
 
 ## 不应 Promotion 的情况
 

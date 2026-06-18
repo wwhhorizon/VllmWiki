@@ -19,6 +19,8 @@
 | [#42325](https://github.com/vllm-project/vllm/issues/42325) / [#42379](https://github.com/vllm-project/vllm/pull/42379) | include | RMSNorm native-dtype multiply fix 已 merged，并同步 regular/fused quant path；但后续评论对 Python IR 是否是 CUDA spec 有争议，因此结论边界写成“已合并 native-dtype behavior + 现有测试覆盖”，不把某一侧实现扩展成通用规范。 |
 | [#39146](https://github.com/vllm-project/vllm/issues/39146) / [#39283](https://github.com/vllm-project/vllm/pull/39283) / [#43741](https://github.com/vllm-project/vllm/pull/43741) | include + boundary | recycled KV block zeroing 需要两个 gate：`needs_kv_cache_zeroing` 覆盖 FullAttentionSpec family，manager 用 `isinstance` 把所有 FullAttentionSpec 子类的新 block id 送进 zeroing pipeline。`#43741` 仍 open，unit tests 强但 patched e2e 还要追踪。 |
 | [#25404](https://github.com/vllm-project/vllm/issues/25404) / [#25603](https://github.com/vllm-project/vllm/pull/25603) | include | merged PR 提供 batch-invariant mode 的首批 C++/Python/env hook 和 kernel override plumbing；review 后把命名从 deterministic 收敛为 batch invariant，并补 logprob bit equality。结论边界是“plumbing 已有”，不是“所有 kernel 已覆盖”。 |
+| [#34878](https://github.com/vllm-project/vllm/pull/34878) | include | ROCm beam search failure 是 test-harness geometry 问题：batch-size-dependent attention/GEMM reduction 的 `1e-5` 级 logprob 差异能翻转 beam ranking。merged PR 在 ROCm test 中固定 async scheduling、CUDA graph、prefix caching、batch size 和 skinny GEMM，非 ROCm 不变。 |
+| [#33537](https://github.com/vllm-project/vllm/pull/33537) | include + boundary | warmup automation 合理覆盖 cold-start serving-state，但本地 evidence 主要证明 TRITON_MLA 首请求 latency 稳定；缺 token/logprob bitwise divergence 的 before/after 复现，且 PR stale，所以只作为 boundary。 |
 
 ## Must Review
 
@@ -27,6 +29,8 @@
 | [#38991](https://github.com/vllm-project/vllm/issues/38991) | quant/dtype loading identity | defer | 本地 evidence 只有 open issue body，comments/timeline 均为空；`clone()`、每次或最终 `torch.cuda.synchronize()`、改变 stream file 顺序只是作者定位实验，不能当作 upstream fix。 | 寻找 linked PR/commit/test，重点看 `runai_safetensors_weights_iterator` ownership、`BaseModelLoader.load_model()` copy synchronization、shared buffer lifetime 和 unified-memory 平台回归测试。 |
 | [#44250](https://github.com/vllm-project/vllm/issues/44250) | external KV / LoRA identity | defer | 已有端到端 cross-adapter 命中、key schema 代码证据、unpatched/patched connector 对照；但缺 linked fix PR、changed files、maintainer resolution 和 regression test。`lora_name` 对照 patch 只能证明缺 adapter 维度，不能证明最终 external cache key schema。 | 继续抓取或等待 linked fix PR；重点看 MP lookup/store key 是否纳入稳定 LoRA identity/version，并同时覆盖 LMCache MP connector、vLLM vendored connector、同 adapter hit 保留与跨 adapter negative test。 |
 | [#42699](https://github.com/vllm-project/vllm/issues/42699), [#40896](https://github.com/vllm-project/vllm/issues/40896) | prefix cache 等价 | defer | 复现和评论证据支持 prefix 路径可翻转 greedy token；但当前只有 mitigation 线索，没有 root-cause patch、maintainer resolution 或 regression test。 | 寻找 linked fix/docs/test PR；补齐 no-prefix、cold prefix、warm prefix、fp32、`VLLM_BATCH_INVARIANT=1` 的验证矩阵。 |
+| [#37076](https://github.com/vllm-project/vllm/issues/37076) | prefix cache / KV block identity | defer | issue 与评论给出强 root-cause 假设：同一步 `cache_full_blocks` 在 GPU forward 前把新分配 block 注册到 prefix-cache hash，后续请求可命中并读取未初始化 GPU memory；但本地缺 linked PR `#37152` 的 changed files/test。 | 抓取 `#37152`；确认 `_blocks_registered_this_step`、`get_cached_block` miss gate、`new_step_starts` 清理和 regression test 是否闭环。 |
+| [#31210](https://github.com/vllm-project/vllm/issues/31210) | KV offload identity | defer | CPU offload 高并发下同 prompt 输出错误/乱码；maintainer 评论称 `#31341` patch 可复现修复，用户确认生产环境不再发生。但本地缺 `#31341` PR JSON，不能确认 copy/ownership/root cause 与测试。 | 抓取 `#31341`；确认 OffloadingConnector restore/copy length、block ownership、high-concurrency regression 和用户确认对应到最终 patch。 |
 
 ## Strong Include Needs More Detail
 
@@ -40,6 +44,8 @@
 | [#42325](https://github.com/vllm-project/vllm/issues/42325) / [#42379](https://github.com/vllm-project/vllm/pull/42379) | RMSNorm dtype semantics | 若后续 maintainer 重新定义 CUDA reference 为 FP32 multiply，要同步改机制页的 reference boundary。 |
 | [#43741](https://github.com/vllm-project/vllm/pull/43741) | recycled KV block zeroing | 追踪 PR merge；若最终 patch 改动，确认 spec gate、`new_block_ids` tracking 和 patched e2e validation 都保留。 |
 | [#25603](https://github.com/vllm-project/vllm/pull/25603) | batch-invariant plumbing | 后续检查更多 kernels 是否接入 `VLLM_BATCH_INVARIANT`，尤其是 review 中提到的 multidim `torch.sum` / mean deterministic reduction。 |
+| [#34878](https://github.com/vllm-project/vllm/pull/34878) | ROCm beam search verification | 可补到 verification matrix：beam search/ranking 需要 logprob ranking 稳定，`semantic output same` 不够。 |
+| [#33537](https://github.com/vllm-project/vllm/pull/33537) | cold-start warmup | 只在找到 first-request token/logprob divergence 复现后再提升；否则保持 latency/warmup boundary。 |
 
 ## 不应 Promotion 的情况
 

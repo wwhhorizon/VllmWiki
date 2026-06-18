@@ -11,7 +11,7 @@
 | [#40179](https://github.com/vllm-project/vllm/pull/40179) | include + boundary | scheduler split 是核心 fix；review comment 暴露 resumed request、block-aligned prompt、final-token scheduler 约束，后续验证矩阵必须覆盖。 |
 | [#39591](https://github.com/vllm-project/vllm/pull/39591) | include + invariant | `BlockTable` 的稳定契约不是“写入当前 slice”，而是 `num_blocks_per_row` 之后 tail 必须为零；`move_row`、`clear_row`、row reuse 都要维护该 invariant。 |
 | [#42240](https://github.com/vllm-project/vllm/pull/42240) | include + workaround | `splitK=0` 是 scoped workaround，绕过 CK split-K atomic reduction；review comment 暴露 direct CK call 与 weight group shape / 128x128 兼容性边界。 |
-| [#43355](https://github.com/vllm-project/vllm/pull/43355) | include + risk | PR 的 bit-identical test 有价值，但本轮证据中 PR 仍 open/unmerged 且有 merge conflict 提醒；review comments 暴露 FP8 conversion type、HND/NHD layout、key/value shape guard 三类未闭环验证缺口。 |
+| [#43355](https://github.com/vllm-project/vllm/pull/43355) | include + risk | PR 的 bit-identical test 有价值；本轮深读修正了风险状态：HND/NHD layout gate 与 key/value row guard 已在 patch 中出现，FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，且 PR 仍 open/unmerged、有 merge conflict 提醒。 |
 | [#44250](https://github.com/vllm-project/vllm/issues/44250) | strong defer | issue body 和评论已足以支持 external KV key 缺 adapter identity 的 root-cause 方向；但评论中的 `lora_name` patch 只是本地对照实验，未证明上游 MP connector、vLLM vendored connector 和 regression test 已闭环。 |
 
 ## Must Review
@@ -28,7 +28,7 @@
 | [#40179](https://github.com/vllm-project/vllm/pull/40179) | prefix cache 等价 | 继续确认 review comment 中 resumed/block-aligned 风险是否已有后续 patch 或 maintainer resolution。 |
 | [#39591](https://github.com/vllm-project/vllm/pull/39591) | KV cache identity | 继续确认 `move_row` 优化建议是否被采纳；若未采纳，标为性能边界而非 correctness 缺口。 |
 | [#42240](https://github.com/vllm-project/vllm/pull/42240) | deterministic reduction | 确认 weight group shape guard 是否已经落入 patch；否则保留为 workaround 边界。 |
-| [#43355](https://github.com/vllm-project/vllm/pull/43355) | verification contract | 追踪 FP8 conversion、NHD layout gate、key/value row guard 三个 review risk 是否有 follow-up patch 或 maintainer resolution；未闭环前只作为 boundary/risk。 |
+| [#43355](https://github.com/vllm-project/vllm/pull/43355) | verification contract | 追踪 FP8 conversion 是否改为 `qk_t`/浮点输入，以及 NHD layout gate、key/value row guard 是否被 maintainer 接受并进入最终合并版本；未闭环前只作为 verification boundary/risk。 |
 
 ## 不应 Promotion 的情况
 

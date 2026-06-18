@@ -20,7 +20,7 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | Source | 证据事实 | 炼化结论 |
 | --- | --- | --- |
 | [#29086](https://github.com/vllm-project/vllm/pull/29086) | 将 `torch.allclose` revert 回 `torch.equal`，因为 draft/target model layer identity 不能用近似相等替代。 | cache/layer identity 必须 exact。 |
-| [#43355](https://github.com/vllm-project/vllm/pull/43355) | fused RoPE + KV cache write 增加 bit-identical tests，使用 `torch.testing.assert_close(..., rtol=0, atol=0)`；测试矩阵覆盖 cache dtype、MHA/GQA、NeoX layout、token count，并避免 duplicate slot mapping 的 last-write-wins nondeterminism。但该 PR 仍为 open / unmerged，讨论里还有 merge conflict 提醒；review comments 指出 FP8 path 若把 `raw_kv_scalar_t` 当浮点转换会错误、FlashAttention HND layout 可能导致 silent memory corruption、key/value row 数缺少 guard。 | 性能 fusion 的测试不能只证明 happy path bit-identical；FP8 conversion type、KV cache layout gate、key/value row guard 必须闭环后，才能把该 PR 当作修复证据。当前只能作为 verification boundary/risk。 |
+| [#43355](https://github.com/vllm-project/vllm/pull/43355) | fused RoPE + KV cache write 增加 bit-identical tests，使用 `torch.testing.assert_close(..., rtol=0, atol=0)`；测试矩阵覆盖 cache dtype、MHA/GQA、NeoX layout、token count，并避免 duplicate slot mapping 的 last-write-wins nondeterminism。深读 patch 后，HND/NHD layout gate 已出现在 `fused_rope_kvcache_supported()`，`key.size(0)` / `value.size(0)` host guard 也已出现在 wrapper；但 FP8 path 仍在 patch 中把 `raw_kv_scalar_t` 传给 `fp8::scaled_convert`。该 PR 仍为 open / unmerged，讨论里还有 merge conflict 提醒。 | 性能 fusion 的测试不能只证明 happy path bit-identical；review risk 要和 patch 对齐。当前可认为 layout gate 与 row guard 有 patch 迹象，但 FP8 conversion type 仍是阻塞风险，不能把该 PR 当作稳定修复证据。 |
 | [#40179](https://github.com/vllm-project/vllm/pull/40179) | deterministic prefix caching e2e test 比较 cache miss 与 cache hit 输出。 | cache 状态变化必须被纳入测试矩阵。 |
 | [#39591](https://github.com/vllm-project/vllm/pull/39591) | concurrent prefill determinism test 和 block table unit tests 共同覆盖 stale metadata。 | 并发 determinism 需要系统级和 metadata 单元测试。 |
 | [#33123](https://github.com/vllm-project/vllm/issues/33123) | `temperature=0` 下 cache miss/hit 产生不同 token。 | token equality 可作为用户可见 correctness gate。 |
@@ -36,7 +36,7 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 3. cache 类问题覆盖 cache miss、cache hit、cache bypass、offload/restore。
 4. batch 类问题覆盖单请求、混 batch、并发 prefill/decode、first request 与 warmup 后。
 5. backend 类问题记录硬件、dtype、backend、graph/capture 状态、kernel config。
-6. fused KV write 类问题额外检查 dtype conversion 类型、KV cache layout、slot uniqueness、key/value tensor row 数 guard。
+6. fused KV write 类问题额外检查 dtype conversion 类型、KV cache layout、slot uniqueness、key/value tensor row 数 guard；review comment 已经被 patch 覆盖的风险要降级为边界，仍留在 patch 中的问题才阻塞 promotion。
 
 ## 验证契约
 
@@ -51,11 +51,11 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 
 - exact identity 不能被 `allclose` 替代，尤其是 cache/layer/KV identity。
 - fused op 的验证要覆盖写入顺序和 slot mapping；duplicate slot 可能引入 last-write-wins nondeterminism。
-- `#43355` 的 review comments 应写成 boundary/risk：它们说明测试矩阵还应覆盖 FP8 conversion、HND/NHD layout、key/value size guard。由于该 PR 在本轮证据中仍为 open/unmerged 且有 merge conflict 提醒，不能直接写成最终修复结论。
+- `#43355` 的 review comments 应写成 boundary/risk，并且必须和当前 patch 对齐：HND/NHD layout gate 与 key/value size guard 已在 patch 中出现，但 FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，所以该 PR 仍不能直接写成最终修复结论。由于该 PR 在本轮证据中仍为 open/unmerged 且有 merge conflict 提醒，`include` 只能覆盖“验证契约样例”，不能覆盖“landed fix”。
 - semantic answer match 只能作为补充，不支持 bitwise/deterministic claim。
 
 ## 仍需补证
 
 - 将 `#29086/#43355/#40179/#39591` 抽成更明确的 verification matrix，并要求每条 curated claim 都声明自己的 equality contract。
-- 继续追踪 `#43355` 是否出现 follow-up patch 或 maintainer resolution，尤其是 FP8 `qk_t` conversion、NHD layout gate、`key.size/value.size >= num_tokens` host guard 三个 review risk。
+- 继续追踪 `#43355` 是否出现 follow-up patch 或 maintainer resolution，尤其是 FP8 `qk_t` conversion。NHD layout gate 与 `key.size/value.size >= num_tokens` host guard 已在当前 patch 中出现，下一轮只需确认它们是否被 maintainer 接受或进入最终合并版本。
 - 后续 review ledger 时，对每条 `include` 检查是否已经写明保护对象和验证层级。

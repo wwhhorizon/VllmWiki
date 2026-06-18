@@ -31,6 +31,9 @@
 | [#33688](https://github.com/vllm-project/vllm/pull/33688) | include | TRITON_ATTN 通过强制 2D Triton unified attention path 成为 decode-invariant backend；B200 和 GPT-OSS/Qwen logprob test 从 128/128 prompts fail 到通过。 |
 | [#40408](https://github.com/vllm-project/vllm/pull/40408) | include | Cutlass FP8 direct path 可以进入 BI mode，但前提是 config independent of `M`；merged PR 为 sm89/sm90/sm100/sm120 增加 fixed-config dispatch 和多 batch size/M 维测试。 |
 | [#40413](https://github.com/vllm-project/vllm/pull/40413) | include | fused add RMSNorm 已有 batch-invariant 证据，BI mode 下不应无谓改走 Triton RMSNorm；merged PR 保留 fused op，并补 residual path FP16/BF16 测试。 |
+| [#27660](https://github.com/vllm-project/vllm/pull/27660) | include + boundary | batch-invariant mode 可以与 `torch.compile` 组合，但前提是显式控制 cuBLAS reduced-precision/split-K/workspace 行为；PR 同时保留 PyTorch 版本差异和 AOT compile 边界，DeepSeek V3.1 logprob BI test 通过。 |
+| [#34865](https://github.com/vllm-project/vllm/issues/34865) / [#34874](https://github.com/vllm-project/vllm/pull/34874) | include | Mamba `"all"` mode prefix-cache bug 是 CUDA graph persistent-buffer identity 问题：多个相同 `MambaSpec` cache group 复用 metadata 时，`block_idx_last_*` 必须复制到当前 builder buffer。 |
+| [#35219](https://github.com/vllm-project/vllm/pull/35219) | include + boundary | hybrid Mamba/attention 共享 block pool 会把 fp32 SSM state stale bits 复用成 fp8/fp16 attention KV NaN；merged PR 只在 hybrid 模型下清新分配的 `FullAttentionSpec` block，不清 prefix-cache hit 或非 hybrid 部署。 |
 
 ## Must Review
 
@@ -65,6 +68,8 @@
 | [#33688](https://github.com/vllm-project/vllm/pull/33688) | TRITON_ATTN backend coverage | 追踪 MLA、FlashInfer、chunked prefill 和其他 Triton attention variant 是否进入 decode-invariant backend list。 |
 | [#40408](https://github.com/vllm-project/vllm/pull/40408) | Cutlass FP8 fixed-config path | 后续 Cutlass FP8 tuning 改动都要重新检查 config 是否仍 independent of `M`，并跑多 batch-size/M 维测试。 |
 | [#40413](https://github.com/vllm-project/vllm/pull/40413) | fused add RMSNorm | 审查其他 fused norm/quant op 是否有同等 BI 证据；没有测试前不要套用该结论。 |
+| [#27660](https://github.com/vllm-project/vllm/pull/27660) | torch.compile batch invariance | 如果后续重新允许 AOT compile 或改变 PyTorch/cuBLAS flag，需要重新跑多 batch/M 维 logprob equality；不要把该 PR 外推成所有 compile path 天然稳定。 |
+| [#35219](https://github.com/vllm-project/vllm/pull/35219) | hybrid Mamba block zeroing | 后续 Mamba/hybrid 问题要区分 cross-dtype stale NaN、metadata pointer、prefix-cache identity 和 MTP kernel-selection；不要把 narrow hybrid zeroing 写成通用 KV zeroing。 |
 
 ## 不应 Promotion 的情况
 

@@ -24,6 +24,8 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | [#40179](https://github.com/vllm-project/vllm/pull/40179) | deterministic prefix caching e2e test 比较 cache miss 与 cache hit 输出。 | cache 状态变化必须被纳入测试矩阵。 |
 | [#39591](https://github.com/vllm-project/vllm/pull/39591) | concurrent prefill determinism test 和 block table unit tests 共同覆盖 stale metadata。 | 并发 determinism 需要系统级和 metadata 单元测试。 |
 | [#33123](https://github.com/vllm-project/vllm/issues/33123) | `temperature=0` 下 cache miss/hit 产生不同 token。 | token equality 可作为用户可见 correctness gate。 |
+| [#34874](https://github.com/vllm-project/vllm/pull/34874) | 新 regression test 不下载模型，而是构造两个共享同一 `MambaSpec` 的 metadata builder，断言 `update_block_table()` 返回的 block index tensor 指向当前 builder 的 persistent buffer，且值正确。issue 评论指出旧 tiny Bamba 测试只有单 Mamba layer，根本不会触发 metadata cache 复用。 | verification 要复现触发拓扑，而不只是覆盖 API happy path；metadata 指针身份可以用 storage sharing 断言。 |
+| [#27660](https://github.com/vllm-project/vllm/pull/27660) | DeepSeek V3.1 + FlashAttention MLA 的 `test_logprobs_bitwise_batch_invariance_bs1_vs_bsN` 通过；PR body 还用多个 `max_model_len` 和 batch size 说明 Inductor reduction kernel thread layout 固定。 | compile path 的验证要同时记录模型、backend、batch/M 维矩阵、PyTorch/cuBLAS flags 和是否启用 AOT compile。 |
 
 ## 根因机制
 
@@ -37,6 +39,7 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 4. batch 类问题覆盖单请求、混 batch、并发 prefill/decode、first request 与 warmup 后。
 5. backend 类问题记录硬件、dtype、backend、graph/capture 状态、kernel config。
 6. fused KV write 类问题额外检查 dtype conversion 类型、KV cache layout、slot uniqueness、key/value tensor row 数 guard；review comment 已经被 patch 覆盖的风险要降级为边界，仍留在 patch 中的问题才阻塞 promotion。
+7. metadata cache 类问题要验证 tensor 指针/地址身份，而不是只比较值；CUDA graph replay 读的是 capture 时的 persistent buffer 地址。
 
 ## 验证契约
 
@@ -45,6 +48,7 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | Bit-identical | KV cache、slot mapping、fused write、exact deterministic path | `torch.equal`、bit-view equality、`rtol=0, atol=0` |
 | Strict numeric tolerance | backend math 允许微小误差但不得翻转 token | 显式 tolerance，并说明 dtype/backend/hardware |
 | Logprob/token equality | decoding 可见行为必须稳定 | `temperature=0` 输出 token 相同，必要时检查 logprob ranking |
+| Metadata identity | CUDA graph persistent buffer、block table、slot mapping | storage/data pointer 指向当前生命周期对象，且逻辑值正确 |
 | Semantic equivalence | 非确定 sampling 或高层 eval | 不能作为 bitwise 修复的唯一证据 |
 
 ## 适用边界
@@ -52,6 +56,8 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 - exact identity 不能被 `allclose` 替代，尤其是 cache/layer/KV identity。
 - fused op 的验证要覆盖写入顺序和 slot mapping；duplicate slot 可能引入 last-write-wins nondeterminism。
 - `#43355` 的 review comments 应写成 boundary/risk，并且必须和当前 patch 对齐：HND/NHD layout gate 与 key/value size guard 已在 patch 中出现，但 FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，所以该 PR 仍不能直接写成最终修复结论。由于该 PR 在本轮证据中仍为 open/unmerged 且有 merge conflict 提醒，`include` 只能覆盖“验证契约样例”，不能覆盖“landed fix”。
+- `#34874` 的 test 证明了 Mamba `"all"` mode 多 cache group 下的 metadata pointer 修复，但不证明所有 Mamba prefix-cache 或 MTP/spec decode 场景都稳定。
+- `#27660` 的 compile 测试证明特定模型/backend/flag 组合下 logprob batch-invariance 通过；不能把它扩展成所有 `torch.compile`、AOT compile 或所有 cuBLAS algorithm 都稳定。
 - semantic answer match 只能作为补充，不支持 bitwise/deterministic claim。
 
 ## 仍需补证

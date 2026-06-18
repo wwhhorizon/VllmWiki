@@ -12,13 +12,14 @@
 | [#39591](https://github.com/vllm-project/vllm/pull/39591) | include + invariant | `BlockTable` 的稳定契约不是“写入当前 slice”，而是 `num_blocks_per_row` 之后 tail 必须为零；`move_row`、`clear_row`、row reuse 都要维护该 invariant。 |
 | [#42240](https://github.com/vllm-project/vllm/pull/42240) | include + workaround | `splitK=0` 是 scoped workaround，绕过 CK split-K atomic reduction；review comment 暴露 direct CK call 与 weight group shape / 128x128 兼容性边界。 |
 | [#43355](https://github.com/vllm-project/vllm/pull/43355) | include + risk | PR 的 bit-identical test 有价值，但本轮证据中 PR 仍 open/unmerged 且有 merge conflict 提醒；review comments 暴露 FP8 conversion type、HND/NHD layout、key/value shape guard 三类未闭环验证缺口。 |
+| [#44250](https://github.com/vllm-project/vllm/issues/44250) | strong defer | issue body 和评论已足以支持 external KV key 缺 adapter identity 的 root-cause 方向；但评论中的 `lora_name` patch 只是本地对照实验，未证明上游 MP connector、vLLM vendored connector 和 regression test 已闭环。 |
 
 ## Must Review
 
 | Source | 机制 | 当前状态 | 缺口 | 下一步 |
 | --- | --- | --- | --- | --- |
 | [#38991](https://github.com/vllm-project/vllm/issues/38991) | quant/dtype loading identity | defer | 本地 evidence 只有 open issue body，comments/timeline 均为空；`clone()`、每次或最终 `torch.cuda.synchronize()`、改变 stream file 顺序只是作者定位实验，不能当作 upstream fix。 | 寻找 linked PR/commit/test，重点看 `runai_safetensors_weights_iterator` ownership、`BaseModelLoader.load_model()` copy synchronization、shared buffer lifetime 和 unified-memory 平台回归测试。 |
-| [#44250](https://github.com/vllm-project/vllm/issues/44250) | external KV / LoRA identity | defer | 已有 unpatched/patched connector 复现对照，但缺上游 MP connector fix、vLLM vendored connector patch 和 regression test；评论提到的 LoRA-aware POC 可能只覆盖 V1 path。 | 继续抓取或等待 linked fix PR；重点看 MP lookup/store key 是否纳入 LoRA identity/version，并覆盖 vendored connector。 |
+| [#44250](https://github.com/vllm-project/vllm/issues/44250) | external KV / LoRA identity | defer | 已有端到端 cross-adapter 命中、key schema 代码证据、unpatched/patched connector 对照；但缺 linked fix PR、changed files、maintainer resolution 和 regression test。`lora_name` 对照 patch 只能证明缺 adapter 维度，不能证明最终 external cache key schema。 | 继续抓取或等待 linked fix PR；重点看 MP lookup/store key 是否纳入稳定 LoRA identity/version，并同时覆盖 LMCache MP connector、vLLM vendored connector、同 adapter hit 保留与跨 adapter negative test。 |
 
 ## Strong Include Needs More Detail
 

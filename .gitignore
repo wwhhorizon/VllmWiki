@@ -6,7 +6,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# 可再生 source/index 层；原始与大规模机器证据保存在 E:\Vllm-Issue\all。
+# 可再生 source/index 层；原始与大规模机器证据保存在仓库外。
 cases/
 patterns/
 domains/

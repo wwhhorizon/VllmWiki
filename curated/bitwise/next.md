@@ -13,6 +13,7 @@
 | [#42240](https://github.com/vllm-project/vllm/pull/42240) | include + workaround | `splitK=0` 是 scoped workaround，绕过 CK/CK-Tile split-K atomic reduction；本轮确认 128x128 weight group guard 已进入 `can_implement` 和 call-site assert，env opt-out 也被删除。 |
 | [#43355](https://github.com/vllm-project/vllm/pull/43355) | include + risk | PR 的 bit-identical test 有价值；本轮深读修正了风险状态：HND/NHD layout gate 与 key/value row guard 已在 patch 中出现，FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，且 PR 仍 open/unmerged、有 merge conflict 提醒。 |
 | [#44250](https://github.com/vllm-project/vllm/issues/44250) | strong defer | issue body 和评论已足以支持 external KV key 缺 adapter identity 的 root-cause 方向；但评论中的 `lora_name` patch 只是本地对照实验，未证明上游 MP connector、vLLM vendored connector 和 regression test 已闭环。 |
+| [#42699](https://github.com/vllm-project/vllm/issues/42699) / [#40896](https://github.com/vllm-project/vllm/issues/40896) | defer | prefix-read/no-prefix-read 与 cold/warm prefix cache 的 greedy token 差异更像 BF16 batch/kernel geometry 边界：评论显示 `fp32` 或 `VLLM_BATCH_INVARIANT=1` 可让输出收敛，但缺 linked fix PR 和 regression test。 |
 
 ## Must Review
 
@@ -20,6 +21,7 @@
 | --- | --- | --- | --- | --- |
 | [#38991](https://github.com/vllm-project/vllm/issues/38991) | quant/dtype loading identity | defer | 本地 evidence 只有 open issue body，comments/timeline 均为空；`clone()`、每次或最终 `torch.cuda.synchronize()`、改变 stream file 顺序只是作者定位实验，不能当作 upstream fix。 | 寻找 linked PR/commit/test，重点看 `runai_safetensors_weights_iterator` ownership、`BaseModelLoader.load_model()` copy synchronization、shared buffer lifetime 和 unified-memory 平台回归测试。 |
 | [#44250](https://github.com/vllm-project/vllm/issues/44250) | external KV / LoRA identity | defer | 已有端到端 cross-adapter 命中、key schema 代码证据、unpatched/patched connector 对照；但缺 linked fix PR、changed files、maintainer resolution 和 regression test。`lora_name` 对照 patch 只能证明缺 adapter 维度，不能证明最终 external cache key schema。 | 继续抓取或等待 linked fix PR；重点看 MP lookup/store key 是否纳入稳定 LoRA identity/version，并同时覆盖 LMCache MP connector、vLLM vendored connector、同 adapter hit 保留与跨 adapter negative test。 |
+| [#42699](https://github.com/vllm-project/vllm/issues/42699), [#40896](https://github.com/vllm-project/vllm/issues/40896) | prefix cache 等价 | defer | 复现和评论证据支持 prefix 路径可翻转 greedy token；但当前只有 mitigation 线索，没有 root-cause patch、maintainer resolution 或 regression test。 | 寻找 linked fix/docs/test PR；补齐 no-prefix、cold prefix、warm prefix、fp32、`VLLM_BATCH_INVARIANT=1` 的验证矩阵。 |
 
 ## Strong Include Needs More Detail
 

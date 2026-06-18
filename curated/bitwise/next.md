@@ -17,7 +17,7 @@
 
 | Source | 机制 | 当前状态 | 缺口 | 下一步 |
 | --- | --- | --- | --- | --- |
-| [#38991](https://github.com/vllm-project/vllm/issues/38991) | quant/dtype loading identity | defer | 缺 linked fix PR、changed files、maintainer resolution；当前 insight 是 shared numpy buffer view + async cross-device copy + buffer lifetime。 | 寻找 `runai_safetensors_weights_iterator`、model loader copy synchronization、shared buffer lifetime 相关 PR。 |
+| [#38991](https://github.com/vllm-project/vllm/issues/38991) | quant/dtype loading identity | defer | 本地 evidence 只有 open issue body，comments/timeline 均为空；`clone()`、每次或最终 `torch.cuda.synchronize()`、改变 stream file 顺序只是作者定位实验，不能当作 upstream fix。 | 寻找 linked PR/commit/test，重点看 `runai_safetensors_weights_iterator` ownership、`BaseModelLoader.load_model()` copy synchronization、shared buffer lifetime 和 unified-memory 平台回归测试。 |
 | [#44250](https://github.com/vllm-project/vllm/issues/44250) | external KV / LoRA identity | defer | 已有 unpatched/patched connector 复现对照，但缺上游 MP connector fix、vLLM vendored connector patch 和 regression test；评论提到的 LoRA-aware POC 可能只覆盖 V1 path。 | 继续抓取或等待 linked fix PR；重点看 MP lookup/store key 是否纳入 LoRA identity/version，并覆盖 vendored connector。 |
 
 ## Strong Include Needs More Detail

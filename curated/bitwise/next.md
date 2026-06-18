@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | [#39096](https://github.com/vllm-project/vllm/issues/39096) / [#38938](https://github.com/vllm-project/vllm/pull/38938) | include | 已确认 batch invariance regression 至少包含两个具体机制：`ParallelLMHead` 的 `UnquantizedEmbeddingMethod.apply` 未走 deterministic Triton persistent kernel，以及 SM<90 下 `torch.compile` + CUDA graphs 组合需要边界处理。 |
 | [#40179](https://github.com/vllm-project/vllm/pull/40179) | include + boundary | scheduler split 是核心机制方向；本轮确认 review comment 直接命中当前 patch：`request.num_output_tokens > 0` 与 `remainder == 0` 两个早退会漏掉 resumed request、block-aligned prompt 和 final-token scheduler 约束。 |
-| [#39591](https://github.com/vllm-project/vllm/pull/39591) | include + invariant | `BlockTable` 的稳定契约不是“写入当前 slice”，而是 `num_blocks_per_row` 之后 tail 必须为零；`move_row`、`clear_row`、row reuse 都要维护该 invariant。 |
+| [#39591](https://github.com/vllm-project/vllm/pull/39591) | include + invariant | `BlockTable` 的稳定契约不是“写入当前 slice”，而是 `num_blocks_per_row` 之后 tail 必须为零；本轮确认 `move_row` 整行复制是性能/简化建议，不是 correctness 阻塞。 |
 | [#42240](https://github.com/vllm-project/vllm/pull/42240) | include + workaround | `splitK=0` 是 scoped workaround，绕过 CK/CK-Tile split-K atomic reduction；本轮确认 128x128 weight group guard 已进入 `can_implement` 和 call-site assert，env opt-out 也被删除。 |
 | [#43355](https://github.com/vllm-project/vllm/pull/43355) | include + risk | PR 的 bit-identical test 有价值；本轮深读修正了风险状态：HND/NHD layout gate 与 key/value row guard 已在 patch 中出现，FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，且 PR 仍 open/unmerged、有 merge conflict 提醒。 |
 | [#44250](https://github.com/vllm-project/vllm/issues/44250) | strong defer | issue body 和评论已足以支持 external KV key 缺 adapter identity 的 root-cause 方向；但评论中的 `lora_name` patch 只是本地对照实验，未证明上游 MP connector、vLLM vendored connector 和 regression test 已闭环。 |
@@ -26,7 +26,6 @@
 | Source | 机制 | 下一步 |
 | --- | --- | --- |
 | [#40179](https://github.com/vllm-project/vllm/pull/40179) | prefix cache 等价 | 继续追踪 follow-up patch：用 `num_computed_tokens` 判断 prefill、用 `(num_prompt_tokens - 1)` 计算 block boundary，并补 resumed request 与 block-aligned prompt 回归测试。 |
-| [#39591](https://github.com/vllm-project/vllm/pull/39591) | KV cache identity | 继续确认 `move_row` 优化建议是否被采纳；若未采纳，标为性能边界而非 correctness 缺口。 |
 | [#42240](https://github.com/vllm-project/vllm/pull/42240) | deterministic reduction | 继续追踪 PR 是否转为 ready/merged，以及上游 AITER 是否落地 deterministic split-K 修复；当前仍按 scoped workaround 维护，不外推到非 128x128 block-scaled shape。 |
 | [#43355](https://github.com/vllm-project/vllm/pull/43355) | verification contract | 追踪 FP8 conversion 是否改为 `qk_t`/浮点输入，以及 NHD layout gate、key/value row guard 是否被 maintainer 接受并进入最终合并版本；未闭环前只作为 verification boundary/risk。 |
 

@@ -21,6 +21,11 @@
 | [#25404](https://github.com/vllm-project/vllm/issues/25404) / [#25603](https://github.com/vllm-project/vllm/pull/25603) | include | merged PR 提供 batch-invariant mode 的首批 C++/Python/env hook 和 kernel override plumbing；review 后把命名从 deterministic 收敛为 batch invariant，并补 logprob bit equality。结论边界是“plumbing 已有”，不是“所有 kernel 已覆盖”。 |
 | [#34878](https://github.com/vllm-project/vllm/pull/34878) | include | ROCm beam search failure 是 test-harness geometry 问题：batch-size-dependent attention/GEMM reduction 的 `1e-5` 级 logprob 差异能翻转 beam ranking。merged PR 在 ROCm test 中固定 async scheduling、CUDA graph、prefix caching、batch size 和 skinny GEMM，非 ROCm 不变。 |
 | [#33537](https://github.com/vllm-project/vllm/pull/33537) | include + boundary | warmup automation 合理覆盖 cold-start serving-state，但本地 evidence 主要证明 TRITON_MLA 首请求 latency 稳定；缺 token/logprob bitwise divergence 的 before/after 复现，且 PR stale，所以只作为 boundary。 |
+| [#33179](https://github.com/vllm-project/vllm/pull/33179) | exclude | 本轮纠错：PR body 声称 gfx950 应使用 FP8 FNuz，但 maintainer 明确指出 Fnuz 只支持 gfx942，MI355/gfx950 使用 CUDA-like FP8 format；该 PR closed/unmerged，不能再作为 `#33123` 的 dtype/prefix-cache 修复证据。 |
+| [#32481](https://github.com/vllm-project/vllm/issues/32481) / [#32561](https://github.com/vllm-project/vllm/pull/32561) | include + boundary | merged PR 在 `VLLM_BATCH_INVARIANT=1` 下禁用 cascade attention，并用 logprob batch-invariance test 从 34/128 prompts fail 到通过验证；边界是 FlashInfer/chunked prefill、MLA、MoE/AWQ 长输出 failure 已在评论中拆成后续问题。 |
+| [#35569](https://github.com/vllm-project/vllm/issues/35569) / [#39849](https://github.com/vllm-project/vllm/pull/39849) | include + boundary | ROCM_ATTN 对 Qwen3-VL reranker 的 score drift 可先通过 selector workaround 管控：open PR 把 gfx9 上 gqa_ratio 2/4 的 native `mfma4` path 路由回 Triton；缺 merge 与 patched reranker e2e score regression。 |
+| [#42125](https://github.com/vllm-project/vllm/issues/42125) | strong defer | same-name runtime LoRA A->B reload 的复现矩阵强，no-prefix、`cache_salt`、first-block change、cold B、unique-name controls 都指向 adapter-version cache identity；但缺 linked PR、changed files、maintainer resolution 和 regression test。 |
+| [#42513](https://github.com/vllm-project/vllm/issues/42513) | defer | MTP eager vs non-MTP 的 batch-size/kernel-selection 链路有 insight，但本地 evidence 只有 issue body；closed state 缺 closure reason、linked fix 和测试，不能 promotion。 |
 
 ## Must Review
 
@@ -31,6 +36,8 @@
 | [#42699](https://github.com/vllm-project/vllm/issues/42699), [#40896](https://github.com/vllm-project/vllm/issues/40896) | prefix cache 等价 | defer | 复现和评论证据支持 prefix 路径可翻转 greedy token；但当前只有 mitigation 线索，没有 root-cause patch、maintainer resolution 或 regression test。 | 寻找 linked fix/docs/test PR；补齐 no-prefix、cold prefix、warm prefix、fp32、`VLLM_BATCH_INVARIANT=1` 的验证矩阵。 |
 | [#37076](https://github.com/vllm-project/vllm/issues/37076) | prefix cache / KV block identity | defer | issue 与评论给出强 root-cause 假设：同一步 `cache_full_blocks` 在 GPU forward 前把新分配 block 注册到 prefix-cache hash，后续请求可命中并读取未初始化 GPU memory；但本地缺 linked PR `#37152` 的 changed files/test。 | 抓取 `#37152`；确认 `_blocks_registered_this_step`、`get_cached_block` miss gate、`new_step_starts` 清理和 regression test 是否闭环。 |
 | [#31210](https://github.com/vllm-project/vllm/issues/31210) | KV offload identity | defer | CPU offload 高并发下同 prompt 输出错误/乱码；maintainer 评论称 `#31341` patch 可复现修复，用户确认生产环境不再发生。但本地缺 `#31341` PR JSON，不能确认 copy/ownership/root cause 与测试。 | 抓取 `#31341`；确认 OffloadingConnector restore/copy length、block ownership、high-concurrency regression 和用户确认对应到最终 patch。 |
+| [#42125](https://github.com/vllm-project/vllm/issues/42125) | runtime LoRA / prefix cache identity | defer | 复现矩阵强，但仍只有 issue body 和一条待复现评论；缺 linked fix PR、changed files、maintainer resolution 和 regression test。 | 寻找 runtime load/unload fix；确认同名 adapter reload 是否触发 prefix-cache eviction，或 key 是否纳入 adapter content/version/generation，并覆盖 same-name reload negative test。 |
+| [#42513](https://github.com/vllm-project/vllm/issues/42513) | MTP/spec decode kernel selection | defer | issue body 指向 MTP verification batch size=2 与普通 decode batch size=1 引起 cuBLAS algorithm 差异，但没有 comments、linked fix、changed files 或 closure reason。 | 寻找关闭原因和 linked fix；确认 CUDA graph/eager、cuBLAS algorithm lock、KV 放大链路和 regression test。 |
 
 ## Strong Include Needs More Detail
 
@@ -46,6 +53,8 @@
 | [#25603](https://github.com/vllm-project/vllm/pull/25603) | batch-invariant plumbing | 后续检查更多 kernels 是否接入 `VLLM_BATCH_INVARIANT`，尤其是 review 中提到的 multidim `torch.sum` / mean deterministic reduction。 |
 | [#34878](https://github.com/vllm-project/vllm/pull/34878) | ROCm beam search verification | 可补到 verification matrix：beam search/ranking 需要 logprob ranking 稳定，`semantic output same` 不够。 |
 | [#33537](https://github.com/vllm-project/vllm/pull/33537) | cold-start warmup | 只在找到 first-request token/logprob divergence 复现后再提升；否则保持 latency/warmup boundary。 |
+| [#32561](https://github.com/vllm-project/vllm/pull/32561) | cascade attention gate | 后续只追踪评论拆出的独立问题：FlashInfer CTA tile/chunked prefill、MLA、MoE router gate、AWQ 长输出；不要把这些缺口归到 cascade attention fix 本身。 |
+| [#39849](https://github.com/vllm-project/vllm/pull/39849) | ROCm backend selector workaround | 追踪 PR merge/CI；补 patched Qwen3-VL reranker score regression，并确认 gfx9 gqa_ratio 2/4 以外 shape 未误路由。 |
 
 ## 不应 Promotion 的情况
 

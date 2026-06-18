@@ -20,7 +20,7 @@
 
 | Source | 证据事实 | 炼化结论 |
 | --- | --- | --- |
-| [#33179](https://github.com/vllm-project/vllm/pull/33179) | gfx950 FP8 dtype guard 漏掉 MI325X/MI355X，导致错误使用 `float8_e4m3fn` 而非 `float8_e4m3fnuz`。 | hardware guard 必须约束数值语义，而不只是可运行性。 |
+| [#33179](https://github.com/vllm-project/vllm/pull/33179) | PR body 声称 MI325X/MI355X(gfx950) 应使用 `float8_e4m3fnuz`，并修改 `is_fp8_fnuz()` 匹配 `gfx95`；但 maintainer 评论明确反驳：Fnuz 只支持 gfx942，MI325 与 MI300 同为 gfx942，MI355/gfx950 使用 CUDA-like FP8 format。PR closed/unmerged。 | hardware guard 结论必须先被硬件/maintainer 事实校验；这条应作为 exclude 反例，而不是 dtype 修复手段。 |
 | [#36488](https://github.com/vllm-project/vllm/pull/36488) | MXFP4 MoE integration 未传入 batch-invariant flag，导致低精度 MoE 随 batch composition 改变 `block_m`/`split_k`。 | quant kernel config 是 bitwise contract 的一部分。 |
 | [#42007](https://github.com/vllm-project/vllm/issues/42007), [#42120](https://github.com/vllm-project/vllm/pull/42120) | FP8 W8A8 MoE + LoRA adapter 输出乱码：MoE `_prepare()` 已把 hidden states 量化成 `torch.float8_e4m3fn`，但 LoRA shrink/expand 仍需要原始 BF16/FP16 activation。PR 同时修两个路径：无 active LoRA 的 base batch 通过 `no_lora_flag` 早退，避免 stale mapping 写坏 base output；LoRA active 时 stash/传递 `original_hidden_states`，并在 DP/EP all2all 下延后 activation quantization，让 base GEMM 用量化副本、LoRA kernel 用未量化输入。review comment 要求清理 stash、把 stash 提前到 `_prepare()` 前，后续 patch 已响应；另有 Blackwell 验证确认 LoRA crash 消失、no-LoRA FP8 MoE 路径无回归、base-after-adapter byte-identical。 | LoRA + MoE + FP8 要同时验证 base path、adapter path、DP/EP all2all、stale mapping 与 dtype 输入；PR 已有强机制证据和 maintainer approval，但仍 open，且 PR body 明确未覆盖 wrong input dtype 的单元测试，因此保持 include-with-boundary。 |
 | [#42325](https://github.com/vllm-project/vllm/issues/42325), [#42379](https://github.com/vllm-project/vllm/pull/42379) | RMSNorm regression 将 weight 先 upcast 到 FP32 再乘，导致 BF16 weight 场景与 native-dtype reference 最大差异约 `3.125e-02`；merged PR 在 regular RMSNorm、fused add RMSNorm、static FP8 quant RMSNorm 等 6 个 kernel site 恢复 `static_cast<scalar_t>(x * s_variance) * weight`，并让 fused quant path 与 non-fused composite path 对齐。PR 测试显示 core layernorm 865 项、IR layernorm 1442 项通过，并补充 TinyLlama/H100 `lm_eval` 无回归；后续评论指出 Python IR 不应默认充当 CUDA spec。 | fusion path 需要独立记录 multiply dtype 和 reference boundary。结论应写成“已合并的 native-dtype 行为及其验证”，同时保留 spec 争议边界：不能把 Python IR 自动等同于所有 CUDA kernel 的规范。 |
@@ -62,7 +62,7 @@
 - [#36488](https://github.com/vllm-project/vllm/pull/36488) 同时属于 batch invariance 和 quant/dtype 机制，不能只在一个页面维护。
 - [#42120](https://github.com/vllm-project/vllm/pull/42120) 当前本地 evidence 中仍 open/unmerged，虽然已有 maintainer approval 和 Blackwell 验证；wrong input dtype 缺专门单测，第三方验证的 adapter 没有 routed-expert LoRA 权重，因此不能写成所有 FP8 MoE LoRA 数值都已闭环。
 - [#42379](https://github.com/vllm-project/vllm/pull/42379) 已 merged，但 `#42325` 后续评论对“Python IR 是否是 CUDA spec”提出异议；wiki 结论应约束在该 PR 接受并合并的 native-dtype behavior 与已跑测试，不把 Python IR 扩展成通用规范。
-- hardware guard 的结论不能跨 GPU family 外推，尤其是 ROCm gfx950、Blackwell、GB10/GB200/GB300 等低精度路径。
+- hardware guard 的结论不能跨 GPU family 外推，尤其是 ROCm gfx950、Blackwell、GB10/GB200/GB300 等低精度路径。`#33179` 显示 PR body 里的硬件格式假设可能反过来是错的；closed/unmerged PR 和 maintainer 反驳应进入 exclude，而非 promotion。
 
 ## 仍需补证
 

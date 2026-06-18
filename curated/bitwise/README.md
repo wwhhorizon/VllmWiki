@@ -18,21 +18,22 @@
 
 本地复核队列 `curated/bitwise_review_queue.*` 属于可再生候选材料，不提交到 GitHub。稳定结论进入本页和六个机制页；待复核 claim 进入 [candidates/bitwise_ledger.csv](../../candidates/bitwise_ledger.csv)。
 
-## 优化手段
+## 炼化条目
 
-| 手段 | 修复对象 | 源证据 | Wiki pattern |
+| 手段/线索 | 修复对象 | 源证据 | Wiki pattern |
 | --- | --- | --- | --- |
 | deterministic prefix caching：在最后一个 block 边界拆分 cache-miss prefill | cache miss 使用 `M=N`，cache hit 只算 suffix `M=N % block_size`；不同 `M` 可能选择不同 ROCm/CUDA tiling 并产生 BF16 累加差异 | [#33123](https://github.com/vllm-project/vllm/issues/33123), [#34046](https://github.com/vllm-project/vllm/pull/34046), [#40179](https://github.com/vllm-project/vllm/pull/40179) | scheduler lifecycle; KV cache; bitwise |
-| 修正 ROCm gfx950 FP8 dtype dispatch | MI325X/MI355X 需要 `float8_e4m3fnuz`；错误 dtype 会制造 full prefill 与 cached prefill 的数值差异 | [#33123](https://github.com/vllm-project/vllm/issues/33123), [#33179](https://github.com/vllm-project/vllm/pull/33179) | dtype/quantization; hardware guard |
+| 排除 ROCm gfx950 FP8 FNuz 误归因 | `#33179` PR body 声称 gfx950 应使用 `float8_e4m3fnuz`，但 maintainer 明确指出 Fnuz 只支持 gfx942，MI355/gfx950 使用 CUDA-like FP8 format；该 PR closed/unmerged，不能作为 `#33123` 修复证据 | [#33179](https://github.com/vllm-project/vllm/pull/33179) | dtype/quantization; hardware guard; exclude |
 | 移除不稳定 Triton autotune candidate | `_chunk_cumsum_fwd_kernel` 在 `BLOCK_H=1` 与 `BLOCK_H>1` 间输出不同；移除坏 candidate 可消除 Mamba 路径非确定性 | [#25194](https://github.com/vllm-project/vllm/issues/25194), [#25197](https://github.com/vllm-project/vllm/pull/25197) | backend routing; verification |
 | 拆分 deterministic 与 fast ROCm skinny GEMM | `atomicAdd` fast reduction 非 bitwise stable；store-then-reduce 可 deterministic | [#35183](https://github.com/vllm-project/vllm/pull/35183), [#34878](https://github.com/vllm-project/vllm/pull/34878) | bitwise; hardware guard |
 | 将 `VLLM_BATCH_INVARIANT` 传入 MXFP4 MoE kernel config | MXFP4 MoE 会按 tokens-per-expert 和 SM count 动态选择 `block_m`/`split_k`，batch composition 改变累加顺序 | [#36488](https://github.com/vllm-project/vllm/pull/36488) | MoE/GEMM; dtype/quantization |
 | 为 FlashInfer/CUTLASS FP4 MoE 声明 batch-invariant support | invariant code path 已存在但 support gate 返回 false，导致 batch-invariance 模式不可达 | [#42670](https://github.com/vllm-project/vllm/pull/42670) | backend routing; MoE/GEMM |
+| 在 batch-invariant mode 下禁用 cascade attention | cascade attention 会按输入 batch 条件性启用，造成 logprob bitwise 差异；merged PR 在 `VLLM_BATCH_INVARIANT=1` 下自动关闭 cascade attention，并用 34/128 prompts fail 到通过的 logprob test 验证 | [#32481](https://github.com/vllm-project/vllm/issues/32481), [#32561](https://github.com/vllm-project/vllm/pull/32561) | batch invariance; attention geometry |
 | 清零未初始化 ROCm attention register | inactive lanes 保留 stale `Qlocal`，污染 WMMA attention scores | [#31293](https://github.com/vllm-project/vllm/pull/31293) | metadata/layout; hardware guard |
 | 对语义等价要求使用 exact equality | cache/layer identity 应使用 `torch.equal` 或 bit-view equality，而不是宽松 `allclose` | [#29086](https://github.com/vllm-project/vllm/pull/29086) | verification; bitwise |
 | 为 fused RoPE + KV cache write 增加 bit-identical tests | 性能优化必须证明 `rtol=0, atol=0`，同时约束 slot mapping，避免 last-write-wins nondeterminism | [#43355](https://github.com/vllm-project/vllm/pull/43355) | metadata/layout; KV cache; verification |
-| 把 backend-specific attention score drift 当正确性 bug | ROCm attention 对 Qwen3-VL reranker 有稳定分数偏差，说明是 backend math/metadata 语义问题，不是随机 flaky | [#35569](https://github.com/vllm-project/vllm/issues/35569), [#35571](https://github.com/vllm-project/vllm/pull/35571) | backend routing; numerical equivalence |
-| 锁定 MTP/spec decode 的 kernel selection | MTP eager verification 与普通 decode batch size 不同，cuBLAS 可能选不同 GEMM algorithm，ULP 差异进入 KV cache 后翻转 token | [#42513](https://github.com/vllm-project/vllm/issues/42513) | request lifecycle; backend routing |
+| 把 backend-specific attention score drift 当正确性 bug | ROCm attention 对 Qwen3-VL reranker 有稳定分数偏差；open PR `#39849` 将 gfx9 上已知不稳定的 ROCM_ATTN `mfma4` gqa_ratio 2/4 shapes 路由回 Triton，但它仍是 workaround，不是 native kernel 根因修复 | [#35569](https://github.com/vllm-project/vllm/issues/35569), [#39849](https://github.com/vllm-project/vllm/pull/39849) | backend routing; numerical equivalence |
+| 复核 MTP/spec decode 的 kernel selection | MTP eager verification 与普通 decode batch size 不同，issue body 指向 cuBLAS algorithm 与 KV 放大链路；但本地证据缺 linked fix、comments 和 regression test，只能作为待补证线索 | [#42513](https://github.com/vllm-project/vllm/issues/42513) | request lifecycle; backend routing; defer |
 | 审计并发/offload 下的 KV cache identity | concurrent prefill、prefix sharing、CPU offload、block allocator pressure 可能返回/恢复错误 KV block | [#37076](https://github.com/vllm-project/vllm/issues/37076), [#39589](https://github.com/vllm-project/vllm/issues/39589), [#31210](https://github.com/vllm-project/vllm/issues/31210) | KV identity; scheduler lifecycle |
 | 保持 normalization kernel 的 dtype 语义 | RMSNorm FP8 fusion 需要 FP32 multiply，但 regular RMSNorm 应尊重 weight dtype | [#42325](https://github.com/vllm-project/vllm/issues/42325) | dtype/quantization; activation/norm |
 | 把 adapter identity 纳入 cache key | LoRA/adapters 改变 K/V 语义；只按 prompt/base model/name 生成 cache key 会跨 adapter 命中 | [#30931](https://github.com/vllm-project/vllm/issues/30931), [#31069](https://github.com/vllm-project/vllm/pull/31069), [#44250](https://github.com/vllm-project/vllm/issues/44250) | KV cache identity |

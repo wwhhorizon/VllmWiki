@@ -12,6 +12,7 @@
 
 - tokens-per-expert、batch size、sequence grouping 改变 MoE/GEMM kernel config。
 - `block_m`、`split_k`、tile choice、backend path 或 graph capture 状态随 batch composition 改变。
+- cascade attention、chunked prefill、FlashInfer CTA tile size 等条件性 attention 优化随 batch shape 或其他请求长度改变。
 - FP4/FP8/MXFP4 MoE 路径中，scale layout、expert routing 和低精度累加放大差异。
 - first real request 触发 CUDA graph、Triton JIT、allocator/cache warmup。
 - SM<90 上 `torch.compile` 或 CUDA graphs 与 batch-invariant mode 组合出现 strict equality 失败。
@@ -25,13 +26,16 @@
 | [#42670](https://github.com/vllm-project/vllm/pull/42670) | FlashInfer + CUTLASS FP4 MoE 已有 invariant code path，但 support gate 继承 `False`，导致 `VLLM_BATCH_INVARIANT=1` 不可达。PR patch 在 `FlashInferBackend.supports_batch_invariance()` 和 `CutlassExpertsFp4._supports_batch_invariance()` 显式返回 `True`；PR body 的模型级复现显示，MiniMax-M2.7-NVFP4 在 B200、TP=2、concurrency=2 下 baseline 2/2 重复失控，开启该 PR 与 `VLLM_BATCH_INVARIANT=1` 后 0/2 bad，两个并发请求 sha256 相同。 | deterministic path 不只要实现，还要被 backend selector 暴露；support gate 也是 bitwise contract 的一部分。但 PR 仍 open，且模型级复现不适合 CI，只能写成 include-with-boundary。 |
 | [#33537](https://github.com/vllm-project/vllm/pull/33537) | first real request 可能受 CUDA graph、Triton JIT、cache/allocator warmup 影响；PR 增加 deterministic warmup automation，单测覆盖 warmup iteration 配置和异常处理。review 要求主线复现后，作者补充的是 TRITON_MLA 首请求 latency 稳定性，而不是 token/logprob divergence；PR 后续 stale。 | batch invariance 要覆盖冷启动和 steady state，但 warmup automation 目前只能作为 boundary/候选机制，不能写成已修复 bitwise bug。 |
 | [#39096](https://github.com/vllm-project/vllm/issues/39096), [#38938](https://github.com/vllm-project/vllm/pull/38938) | SM<90 GPU 上，`VLLM_BATCH_INVARIANT=1` 与 `torch.compile` 或 CUDA graphs 组合时不能保持 batch-invariant 输出；PR #38938 将问题拆成两个修复点：`ParallelLMHead` 使用的 `UnquantizedEmbeddingMethod.apply` 漏掉 batch-invariant GEMM 路由，以及 SM<90 下 `torch.compile` + CUDA graph 组合需要 enforce-eager 边界。 | 可以 promotion 为具体机制：batch invariance 必须覆盖 final logits projection 和 compile/graph support gate。 |
-| [#42513](https://github.com/vllm-project/vllm/issues/42513) | MTP eager mode 下 batch size/verification shape 差异导致 token 不同。 | candidate，需 linked fix/test review。 |
+| [#32481](https://github.com/vllm-project/vllm/issues/32481), [#32561](https://github.com/vllm-project/vllm/pull/32561) | PR body 说明 cascade attention 会在某些 input batch 上条件性启用，造成 output logprobs 数值差异；merged patch 在 `VLLM_BATCH_INVARIANT=1` 下自动设置 `disable_cascade_attn=True`，并更新 logprob batch-invariance test。原始 test 在 FlashAttention backend 上 34/128 prompts 失败，关闭后通过。评论还把 FlashInfer/chunked prefill、MoE 和 AWQ 的后续失败拆为独立边界。 | batch-invariant mode 必须禁用或 gate 掉会随 batch composition 条件性启用的 attention 优化；logprob bitwise test 比文本相同更能暴露 ranking 边界。 |
+| [#42513](https://github.com/vllm-project/vllm/issues/42513) | MTP eager mode 下 `temperature=0` 与非 MTP 输出不同；issue body 认为 MTP verification batch size=2、普通 decode batch size=1，使 cuBLAS 选择不同 GEMM algorithm，1-2 ULP BF16 attention 差异写入 KV 后被放大。issue 已 closed，但本地 JSON 没有 comments、linked fix、changed files 或 regression test。 | 这是有价值的 request-shape/kernel-selection 线索，但不能 promotion；只保留为 defer，下一轮必须找 linked fix 或 maintainer resolution。 |
 
 ## 根因机制
 
 Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geometry。batch composition 改变了每个 kernel 看到的 shape、expert token 分布、graph/capture 状态或 reduction order。低精度 MoE/FP4/FP8 路径中，scale layout 和 expert routing 会进一步放大这些差异。
 
 `#42670` 补充了一个容易漏掉的层次：即使底层 backend 已经有固定 split size、禁用 split-KV 或固定 per-expert tile 的 invariant path，selector/oracle 的 support gate 仍可能让该路径完全不可达。此时问题不是“没有 deterministic kernel”，而是“deterministic kernel 没有被声明为可选能力”。
+
+`#32561` 再补充一个 attention 侧机制：某些优化不是固定 backend，而是按当前 batch 的形状、长度或内部 heuristics 条件性启用。cascade attention 在普通模式下是性能优化，但在 batch-invariant mode 下会让同一请求因为同 batch 的其他请求不同而走不同 attention path。评论中的 FlashInfer CTA tile size 讨论也说明，query tile 如果取决于 batch 内最大/平均 query length，就天然不是 batch-invariant。
 
 ## 修复方式
 
@@ -40,6 +44,7 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 3. 确认 support gate、backend selector、MoE oracle 都能到达 invariant path。
 4. 对 quantized MoE 同时记录 scale layout、expert routing、hardware SM count 和 backend。
 5. 对 support-gate fix，除了 patch kernel 本身，还要检查 `supports_batch_invariance()`、MoE expert capability、attention backend selector 和实际 engine config 是否一致。
+6. 对条件性 attention 优化，在 batch-invariant mode 下禁用该优化，或证明它的启用条件和内部 tile size 不依赖同 batch 的其他请求。
 
 ## 验证契约
 
@@ -49,6 +54,7 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 - 对 `torch.compile` / CUDA graphs 问题，要区分 compiler graph、CUDA graph、kernel 本身和 test harness 的归因。
 - 对 support-gate 类修复，至少要证明 invariant mode 能选到目标 backend；若只能做模型级复现，也要记录硬件、模型、TP/concurrency、backend、输出 hash 和 CI 不覆盖原因。
 - 对 warmup 类修复，要分清首请求 latency 稳定、graph/JIT 编译完成和 token/logprob bitwise 稳定；三者不能互相替代。
+- 对 attention path gate，优先比较 logprobs 和 token，而不是只看最终文本；`#32561` 的 34/128 prompts failure 说明 logprob ranking 可以在文本变化前暴露问题。
 
 ## 适用边界
 
@@ -56,6 +62,8 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 - `#39096/#38938` 已能支持 final logits projection 与 SM<90 compile/graph 边界这两个具体机制；但不要外推为所有 torch.compile 场景都不支持 batch invariance。
 - `#42670` 的证据集中在 MiniMax-M2-family NVFP4、FlashInfer/CUTLASS FP4 MoE 和 `VLLM_BATCH_INVARIANT=1`；PR body 也把它定位成移除一个具体噪声源的 workaround，而不是修复该 checkpoint 对低精度噪声敏感的根因。PR 仍 open/unmerged，不能写成已发布能力。
 - `#33537` 的 warmup 机制合理，但本地 evidence 中缺少“无 warmup token/logprob diverge、有 warmup bitwise 收敛”的闭环；目前只能作为 cold-start serving-state 边界。
+- `#32561` 已 merged，可作为 cascade attention gate 的稳定结论；但 PR 讨论明确把 FlashInfer chunked prefill、MoE、AWQ 继续拆成后续问题，因此不能外推为所有 attention backend 和所有 quantized/MoE 模型都已 batch-invariant。
+- `#42513` 只有 issue body，缺修复闭环；closed state 不能当作 solved。它可以指导下一轮寻找 MTP/spec decode 与 GEMM algorithm lock 的证据，但不能写成已修复机制。
 - batch invariance 与 deterministic dispatch/reduction 机制高度交叉；当根因是 split-K/atomic/autotune，应交叉写入 dispatch 页。
 
 ## 仍需补证
@@ -64,3 +72,5 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 - 继续拆 `#27433` 中的 umbrella 讨论，把具体 PR 映射到单独机制，不把 umbrella issue 当结论。
 - 追踪 `#42670` 是否合并；最好补一个轻量 support-gate/selector test，证明 `VLLM_BATCH_INVARIANT=1` 下 FlashInfer 与 CUTLASS FP4 MoE 不再被 base-class `False` 拦截。
 - 若继续推进 `#33537`，需要补 first-request token/logprob 复现矩阵，而不只是 latency benchmark。
+- 继续拆 `#32561` 评论里留下的后续边界：FlashInfer CTA tile size/chunked prefill、MoE router gate、AWQ 长输出 failure 应各自寻找独立 PR/test，不能混入 cascade attention 的 landed fix。
+- 对 `#42513`，寻找关闭原因、linked PR 或测试；重点确认 MTP verification batch shape、cuBLAS algorithm lock、CUDA graph/eager 差异和 KV 放大链路。

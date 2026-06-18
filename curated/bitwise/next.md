@@ -34,6 +34,8 @@
 | [#27660](https://github.com/vllm-project/vllm/pull/27660) | include + boundary | batch-invariant mode 可以与 `torch.compile` 组合，但前提是显式控制 cuBLAS reduced-precision/split-K/workspace 行为；PR 同时保留 PyTorch 版本差异和 AOT compile 边界，DeepSeek V3.1 logprob BI test 通过。 |
 | [#34865](https://github.com/vllm-project/vllm/issues/34865) / [#34874](https://github.com/vllm-project/vllm/pull/34874) | include | Mamba `"all"` mode prefix-cache bug 是 CUDA graph persistent-buffer identity 问题：多个相同 `MambaSpec` cache group 复用 metadata 时，`block_idx_last_*` 必须复制到当前 builder buffer。 |
 | [#35219](https://github.com/vllm-project/vllm/pull/35219) | include + boundary | hybrid Mamba/attention 共享 block pool 会把 fp32 SSM state stale bits 复用成 fp8/fp16 attention KV NaN；merged PR 只在 hybrid 模型下清新分配的 `FullAttentionSpec` block，不清 prefix-cache hit 或非 hybrid 部署。 |
+| [#41651](https://github.com/vllm-project/vllm/issues/41651) / [#42650](https://github.com/vllm-project/vllm/pull/42650) | include + boundary | 非均匀 per-layer Q-head 模型需要 attention metadata 从实际 served layer 取 `num_heads`；#42650 修 FlashInfer/Triton plan/scratch head-count mismatch，但不覆盖独立的 TRITON_ATTN FP8 scale fix，也暴露 Gemma4 MTP grouping 后续风险。 |
+| [#43317](https://github.com/vllm-project/vllm/pull/43317) | defer | decode/prefill consistency test 不能用文本 `decode -> encode` roundtrip 重建 token prefix；open PR 改为 token-id prefix，但未合并，只能作为测试 soundness 风险。 |
 
 ## Must Review
 
@@ -70,6 +72,8 @@
 | [#40413](https://github.com/vllm-project/vllm/pull/40413) | fused add RMSNorm | 审查其他 fused norm/quant op 是否有同等 BI 证据；没有测试前不要套用该结论。 |
 | [#27660](https://github.com/vllm-project/vllm/pull/27660) | torch.compile batch invariance | 如果后续重新允许 AOT compile 或改变 PyTorch/cuBLAS flag，需要重新跑多 batch/M 维 logprob equality；不要把该 PR 外推成所有 compile path 天然稳定。 |
 | [#35219](https://github.com/vllm-project/vllm/pull/35219) | hybrid Mamba block zeroing | 后续 Mamba/hybrid 问题要区分 cross-dtype stale NaN、metadata pointer、prefix-cache identity 和 MTP kernel-selection；不要把 narrow hybrid zeroing 写成通用 KV zeroing。 |
+| [#42650](https://github.com/vllm-project/vllm/pull/42650) | non-uniform Q-head metadata | 追踪 Gemma4 MTP grouping key 修复；确认 target/draft Q-head 不同的 layers 不再混入同一 attention group。 |
+| [#43317](https://github.com/vllm-project/vllm/pull/43317) | decode/prefill test soundness | 追踪 PR 是否合并；如果未合并，所有 decode/prefill logprob mismatch 都要先排除 tokenizer roundtrip 改写 prefix 的误报。 |
 
 ## 不应 Promotion 的情况
 

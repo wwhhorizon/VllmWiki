@@ -43,13 +43,12 @@
 - same-step prefix block 注册与 cache hit 可见性仍在补证：[#37076](https://github.com/vllm-project/vllm/issues/37076)、[#37152](https://github.com/vllm-project/vllm/pull/37152)。
 - external KV connector 仍缺稳定的 adapter identity/version schema：[#44250](https://github.com/vllm-project/vllm/issues/44250)。
 - runtime same-name LoRA reload 仍缺内容派生的本地 prefix-cache version identity 闭环：[#42125](https://github.com/vllm-project/vllm/issues/42125)。
-- MTP/spec decode 的 eager exact reproducibility 目前按 batch-invariant 契约边界处理：[#42513](https://github.com/vllm-project/vllm/issues/42513)、[#42518](https://github.com/vllm-project/vllm/issues/42518)。
 - loading-lifetime 主线仍缺 direct closure：[#38991](https://github.com/vllm-project/vllm/issues/38991)。
 
 ## 辅助边界
 
 - scheduler follow-up、open workaround、support-gate、review-risk 和 test-soundness 项统一维护在 [next.md](next.md)。
-- 当前仍在辅助边界队列中的代表项包括：[#40179](https://github.com/vllm-project/vllm/pull/40179)、[#42670](https://github.com/vllm-project/vllm/pull/42670)、[#42240](https://github.com/vllm-project/vllm/pull/42240)、[#39849](https://github.com/vllm-project/vllm/pull/39849)、[#43355](https://github.com/vllm-project/vllm/pull/43355)、[#33537](https://github.com/vllm-project/vllm/pull/33537)、[#43317](https://github.com/vllm-project/vllm/pull/43317)。
+- 当前仍在辅助边界队列中的代表项包括：[#42513](https://github.com/vllm-project/vllm/issues/42513) / [#42518](https://github.com/vllm-project/vllm/issues/42518)、[#40179](https://github.com/vllm-project/vllm/pull/40179)、[#42670](https://github.com/vllm-project/vllm/pull/42670)、[#42240](https://github.com/vllm-project/vllm/pull/42240)、[#39849](https://github.com/vllm-project/vllm/pull/39849)、[#43355](https://github.com/vllm-project/vllm/pull/43355)、[#33537](https://github.com/vllm-project/vllm/pull/33537)、[#43317](https://github.com/vllm-project/vllm/pull/43317)。
 
 ## 反例 / 排除项
 

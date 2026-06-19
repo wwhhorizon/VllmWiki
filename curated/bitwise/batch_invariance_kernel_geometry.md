@@ -40,6 +40,8 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 
 `#42513/#42518` 则提供了一个更适合写成契约边界、而不是“等待 landed fix”的案例。作者先用 `#42513` 给出最小 root-cause 假说，随后在 `#42518` 提供完整复现矩阵、maintainer 评论和后续 prototype 线索。现有最佳证据支持这样一条链路：MTP verification forward 的 batch_size=2 与普通 decode 的 batch_size=1 改变 eager 模式下的 attention GEMM 几何，1-2 ULP BF16 差异写入 KV 后在后续 decode 中放大到 token 分叉；而 maintainer 明确把这类 exact reproducibility 需求收口到 `VLLM_BATCH_INVARIANT=1`，没有接受单独的官方 fix PR。
 
+`#42699/#40896` 也显示出同样的收口方式：对 prefix-read/no-prefix-read、cold/warm prefix cache 这类 exact reproducibility 报告，评论证据表明 `fp32` 或 `VLLM_BATCH_INVARIANT=1` 都能让输出重新收敛；其中 `#42699` 还把缓解直接指向已合并的 [#40193](https://github.com/vllm-project/vllm/pull/40193)。这说明在当前上游语义下，默认 prefix-cache path 的这类差异更适合先解释为 batch/query-length 改变 backend geometry 的数值路径边界，而不是先假设存在独立的 prefix-cache KV corruption。
+
 ## 修复方式
 
 1. 找出 batch composition 改变的 kernel config：`block_m`、`split_k`、tile、backend、graph capture、tokens-per-expert。
@@ -72,6 +74,7 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 - `#30018` 已 merged，FA2 split path 有直接 patch 证据，LoRA 有 PR body、测试矩阵和 review 支持；但本地 evidence 不足以把 LoRA landed-code 子路径写成完全闭环，且作者明确说该 PR 不支持 CUDA graph，测试依赖 `enforce_eager`。
 - `#33688` 已 merged，证据集中在 B200、TRITON_ATTN、2D kernel 和 GPT-OSS/Qwen 测试；它不代表所有 Triton attention variant、MLA 或 FlashInfer 已覆盖。
 - `#42513/#42518` 目前最准确的定位是契约边界：maintainer 明确认为 eager 模式下这类 drift 是 known issue，若需要 exact invariance 应使用 batch-invariant mode。现有本地证据支持“MTP verification batch geometry -> eager attention GEMM 数值路径变化 -> KV 放大 -> token 分叉”的根因方向，但没有官方 linked fix、changed files 或 regression test，因此不能写成 landed 机制。
+- `#42699/#40896` 目前也更准确地属于契约边界，而不是 prefix-cache 主线 direct-closure 缺口：`#40896` maintainer 明确说 prefix caching determinism 还未完全支持，`#42699` 评论则显示 `fp32` 与 `VLLM_BATCH_INVARIANT=1` 可以消除复现。除非后续出现 prefix-cache 专属 patch、官方 docs 变更或 regression test，否则不要把这两条 open issue 继续维护成独立主机制。
 - batch invariance 与 deterministic dispatch/reduction 机制高度交叉；当根因是 split-K/atomic/autotune，应交叉写入 dispatch 页。
 
 ## 仍需补证

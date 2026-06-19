@@ -39,14 +39,14 @@
 
 ## 主线核心缺口
 
-- external KV connector 仍缺稳定的 adapter identity/version schema：[#44250](https://github.com/vllm-project/vllm/issues/44250)。
-- runtime same-name LoRA reload 仍缺内容派生的本地 prefix-cache version identity 闭环：[#42125](https://github.com/vllm-project/vllm/issues/42125)。
+- runtime same-name LoRA reload 已接近内容派生的本地 prefix-cache version identity 修法闭环，但仍缺 merge 与边界补齐：[#42125](https://github.com/vllm-project/vllm/issues/42125)、[#45981](https://github.com/vllm-project/vllm/pull/45981)。
+- external KV connector 仍缺跨仓统一的 adapter identity/version schema：[#44250](https://github.com/vllm-project/vllm/issues/44250)、[#45549](https://github.com/vllm-project/vllm/pull/45549)、[LMCache #2962](https://github.com/LMCache/LMCache/pull/2962)。
 - loading-lifetime 主线仍缺 direct closure：[#38991](https://github.com/vllm-project/vllm/issues/38991)。
 
 ## 辅助边界
 
-- scheduler follow-up、open workaround、support-gate、review-risk 和 test-soundness 项统一维护在 [next.md](next.md)。
-- 当前仍在辅助边界队列中的代表项包括：[#42699](https://github.com/vllm-project/vllm/issues/42699) / [#40896](https://github.com/vllm-project/vllm/issues/40896)、[#37076](https://github.com/vllm-project/vllm/issues/37076) / [#37152](https://github.com/vllm-project/vllm/pull/37152)、[#42513](https://github.com/vllm-project/vllm/issues/42513) / [#42518](https://github.com/vllm-project/vllm/issues/42518)、[#40179](https://github.com/vllm-project/vllm/pull/40179)、[#42670](https://github.com/vllm-project/vllm/pull/42670)、[#42240](https://github.com/vllm-project/vllm/pull/42240)、[#39849](https://github.com/vllm-project/vllm/pull/39849)、[#43355](https://github.com/vllm-project/vllm/pull/43355)、[#33537](https://github.com/vllm-project/vllm/pull/33537)、[#43317](https://github.com/vllm-project/vllm/pull/43317)。
+- 仍然贴着主线、但当前更适合作为边界维护的条目，主要是：[#42699](https://github.com/vllm-project/vllm/issues/42699) / [#40896](https://github.com/vllm-project/vllm/issues/40896)、[#37076](https://github.com/vllm-project/vllm/issues/37076) / [#37152](https://github.com/vllm-project/vllm/pull/37152)、[#42513](https://github.com/vllm-project/vllm/issues/42513) / [#42518](https://github.com/vllm-project/vllm/issues/42518)、[#40179](https://github.com/vllm-project/vllm/pull/40179)。
+- open workaround、support-gate、review-risk、warmup 和 test-soundness 项继续统一维护在 [next.md](next.md)，但不再在专题入口重复展开，以免把验证/支撑问题写得像主线 closure。
 
 ## 反例 / 排除项
 

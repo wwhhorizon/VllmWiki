@@ -41,7 +41,7 @@
 
 - runtime same-name LoRA reload 已接近内容派生的本地 prefix-cache version identity 修法闭环，但仍缺 merge 与边界补齐：[#42125](https://github.com/vllm-project/vllm/issues/42125)、[#45981](https://github.com/vllm-project/vllm/pull/45981)。
 - external KV connector 仍缺跨仓统一的 adapter identity/version schema：[#44250](https://github.com/vllm-project/vllm/issues/44250)、[#45549](https://github.com/vllm-project/vllm/pull/45549)、[LMCache #2962](https://github.com/LMCache/LMCache/pull/2962)。
-- loading-lifetime 主线仍缺 direct closure：[#38991](https://github.com/vllm-project/vllm/issues/38991)。
+- loading-lifetime 主线的 correctness 机制已基本收敛到 iterator-side `clone()`，但 `#38991` 本体仍缺 direct closure 与 exact unified-memory coverage：[#38991](https://github.com/vllm-project/vllm/issues/38991)。
 
 ## 辅助边界
 

@@ -69,6 +69,16 @@
 - review comment 暴露风险但没有后续闭环；
 - 只能证明 semantic answer 相似，不能证明 tensor / KV / logits / token identity。
 
+## 主线收紧规则
+
+- 每条 claim 先定角色：`主机制 / boundary / defer / 反例 / 验证风险` 五选一；不要把同一条同时写成“已知主机制”又“仍需补证”。
+- 专题 `README` 主表只收稳定主机制：至少要能直接解释 `token/logprob/KV/tensor/metadata identity` 的变化，并且已有 patch、test 或 maintainer resolution 闭环。
+- 机制页的 `代表证据` 只放闭环证据：必须同时支撑现象、root cause、fix/workaround 和 verification。open PR、unresolved review risk、support gate、selector fallback、warmup、test soundness、semantic-only 结果，默认降到 `适用边界` 或 `仍需补证`。
+- 反例和排除项单独写，不与正向主机制混排。
+- 同一 PR 若同时包含稳定核心和未闭环子结论，必须拆开写；不能整条 promotion。
+- `open/unmerged + unresolved review risk` 只能进入 `next.md` 或机制页边界段，不能进入专题总览主表。
+- 每次 promotion 都要声明保护对象：`bit-identical / strict numeric tolerance / logprob ranking / token equality / KV identity / metadata identity / semantic only`。
+
 ## 输出
 
 根据证据更新：
@@ -85,6 +95,8 @@
 
 - validator 通过；
 - README 仍是项目概览，不承载专题细节；
+- 专题 README 主表没有泄漏 `boundary / defer / 反例 / 验证风险`；
+- 机制页 `代表证据` 没有混入缺 linked fix、缺 changed files 或仍 open/unmerged 的弱证据；
 - 当前专题文档只在对应 `curated/<topic>/` 下维护；
 - raw/generated 目录未进入 Git；
 - 新增文档为中文；

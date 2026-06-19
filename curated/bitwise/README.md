@@ -18,36 +18,35 @@
 
 本地复核队列 `curated/bitwise_review_queue.*` 属于可再生候选材料，不提交到 GitHub。稳定结论进入本页和六个机制页；待复核 claim 进入 [candidates/bitwise_ledger.csv](../../candidates/bitwise_ledger.csv)。
 
-## 炼化条目
+## 稳定主机制
 
-| 手段/线索 | 修复对象 | 源证据 | Wiki pattern |
+| 机制 | 修复对象 | 源证据 | Wiki pattern |
 | --- | --- | --- | --- |
-| deterministic prefix caching：在最后一个 block 边界拆分 cache-miss prefill | cache miss 使用 `M=N`，cache hit 只算 suffix `M=N % block_size`；不同 `M` 可能选择不同 ROCm/CUDA tiling 并产生 BF16 累加差异 | [#33123](https://github.com/vllm-project/vllm/issues/33123), [#34046](https://github.com/vllm-project/vllm/pull/34046), [#40179](https://github.com/vllm-project/vllm/pull/40179) | scheduler lifecycle; KV cache; bitwise |
-| 排除 ROCm gfx950 FP8 FNuz 误归因 | `#33179` PR body 声称 gfx950 应使用 `float8_e4m3fnuz`，但 maintainer 明确指出 Fnuz 只支持 gfx942，MI355/gfx950 使用 CUDA-like FP8 format；该 PR closed/unmerged，不能作为 `#33123` 修复证据 | [#33179](https://github.com/vllm-project/vllm/pull/33179) | dtype/quantization; hardware guard; exclude |
-| 移除不稳定 Triton autotune candidate | `_chunk_cumsum_fwd_kernel` 在 `BLOCK_H=1` 与 `BLOCK_H>1` 间输出不同；移除坏 candidate 可消除 Mamba 路径非确定性 | [#25194](https://github.com/vllm-project/vllm/issues/25194), [#25197](https://github.com/vllm-project/vllm/pull/25197) | backend routing; verification |
-| 拆分 deterministic 与 fast ROCm skinny GEMM | `atomicAdd` fast reduction 非 bitwise stable；store-then-reduce 可 deterministic | [#35183](https://github.com/vllm-project/vllm/pull/35183), [#34878](https://github.com/vllm-project/vllm/pull/34878) | bitwise; hardware guard |
-| 将 `VLLM_BATCH_INVARIANT` 传入 MXFP4 MoE kernel config | MXFP4 MoE 会按 tokens-per-expert 和 SM count 动态选择 `block_m`/`split_k`，batch composition 改变累加顺序 | [#36488](https://github.com/vllm-project/vllm/pull/36488) | MoE/GEMM; dtype/quantization |
-| 为 FlashInfer/CUTLASS FP4 MoE 声明 batch-invariant support | invariant code path 已存在但 support gate 返回 false，导致 batch-invariance 模式不可达 | [#42670](https://github.com/vllm-project/vllm/pull/42670) | backend routing; MoE/GEMM |
-| 在 batch-invariant mode 下禁用 cascade attention | cascade attention 会按输入 batch 条件性启用，造成 logprob bitwise 差异；merged PR 在 `VLLM_BATCH_INVARIANT=1` 下自动关闭 cascade attention，并用 34/128 prompts fail 到通过的 logprob test 验证 | [#32481](https://github.com/vllm-project/vllm/issues/32481), [#32561](https://github.com/vllm-project/vllm/pull/32561) | batch invariance; attention geometry |
-| 扩展 batch-invariant backend/quant 覆盖面 | AWQ 绕开 Marlin 自动转换、FA2 固定 split、TRITON_ATTN 强制 2D kernel、Cutlass FP8 使用 fixed-config direct path；LoRA 在 #30018 中有测试覆盖和 review 支持，但 landed-code 子路径仍需单独复核 | [#38670](https://github.com/vllm-project/vllm/pull/38670), [#30018](https://github.com/vllm-project/vllm/pull/30018), [#33688](https://github.com/vllm-project/vllm/pull/33688), [#40408](https://github.com/vllm-project/vllm/pull/40408) | batch invariance; backend coverage; quantization |
-| 让 batch-invariant mode 覆盖 `torch.compile` / cuBLAS | torch.compile 不应被一律退回 eager；关键是关闭会随 batch shape 改变数值的 cuBLAS reduced-precision/split-K 行为，同时保留 PyTorch 版本和 AOT compile 边界 | [#27660](https://github.com/vllm-project/vllm/pull/27660) | compile; cuBLAS; deterministic dispatch |
-| 用 per-layer Q-head 数构建 attention metadata | Laguna XS.2 等非均匀 per-layer head 模型中，metadata builder 若用 model-wide head count 做 FlashInfer plan 或 Triton scratch allocation，会与 runtime `q.shape[1]` 不一致，导致 tail zero、garbage logits 或越界写 | [#41651](https://github.com/vllm-project/vllm/issues/41651), [#42650](https://github.com/vllm-project/vllm/pull/42650) | attention metadata; FP8 KV; backend routing |
-| 清零未初始化 ROCm attention register | inactive lanes 保留 stale `Qlocal`，污染 WMMA attention scores | [#31293](https://github.com/vllm-project/vllm/pull/31293) | metadata/layout; hardware guard |
-| 对语义等价要求使用 exact equality | cache/layer identity 应使用 `torch.equal` 或 bit-view equality，而不是宽松 `allclose` | [#29086](https://github.com/vllm-project/vllm/pull/29086) | verification; bitwise |
-| 为 fused RoPE + KV cache write 增加 bit-identical tests | 性能优化必须证明 `rtol=0, atol=0`，同时约束 slot mapping，避免 last-write-wins nondeterminism | [#43355](https://github.com/vllm-project/vllm/pull/43355) | metadata/layout; KV cache; verification |
-| 把 backend-specific attention score drift 当正确性 bug | ROCm attention 对 Qwen3-VL reranker 有稳定分数偏差；open PR `#39849` 将 gfx9 上已知不稳定的 ROCM_ATTN `mfma4` gqa_ratio 2/4 shapes 路由回 Triton，但它仍是 workaround，不是 native kernel 根因修复 | [#35569](https://github.com/vllm-project/vllm/issues/35569), [#39849](https://github.com/vllm-project/vllm/pull/39849) | backend routing; numerical equivalence |
-| 复核 MTP/spec decode 的 kernel selection | MTP eager verification 与普通 decode batch size 不同，issue body 指向 cuBLAS algorithm 与 KV 放大链路；但本地证据缺 linked fix、comments 和 regression test，只能作为待补证线索 | [#42513](https://github.com/vllm-project/vllm/issues/42513) | request lifecycle; backend routing; defer |
-| 审计并发/offload 下的 KV cache identity | concurrent prefill、prefix sharing、CPU offload、block allocator pressure 可能返回/恢复错误 KV block | [#37076](https://github.com/vllm-project/vllm/issues/37076), [#39589](https://github.com/vllm-project/vllm/issues/39589), [#31210](https://github.com/vllm-project/vllm/issues/31210) | KV identity; scheduler lifecycle |
-| 保持 normalization kernel 的 dtype 语义 | RMSNorm 与 fused add RMSNorm 都要声明自己的 dtype/reference boundary；已有 batch-invariant 证据的 fused op 不应在 BI mode 下无谓改走另一条 path | [#42325](https://github.com/vllm-project/vllm/issues/42325), [#40413](https://github.com/vllm-project/vllm/pull/40413) | dtype/quantization; activation/norm |
-| 把 adapter identity 纳入 cache key | LoRA/adapters 改变 K/V 语义；只按 prompt/base model/name 生成 cache key 会跨 adapter 命中 | [#30931](https://github.com/vllm-project/vllm/issues/30931), [#31069](https://github.com/vllm-project/vllm/pull/31069), [#44250](https://github.com/vllm-project/vllm/issues/44250) | KV cache identity |
-| 清零 recycled KV blocks 与 stale metadata tails | 重用 block 或 block-table row 可能保留 stale id/data，导致并发下非确定输出 | [#39146](https://github.com/vllm-project/vllm/issues/39146), [#43741](https://github.com/vllm-project/vllm/pull/43741), [#39589](https://github.com/vllm-project/vllm/issues/39589), [#39591](https://github.com/vllm-project/vllm/pull/39591) | KV identity; metadata layout |
-| 修复 Mamba prefix-cache metadata 指针 | Nemotron/Jamba 类 hybrid 模型有多个相同 `MambaSpec` cache group；metadata cache 复用浅拷贝时，`block_idx_last_*` 仍指向第一个 builder 的 persistent buffer，CUDA graph replay 读到 stale block index | [#34865](https://github.com/vllm-project/vllm/issues/34865), [#34874](https://github.com/vllm-project/vllm/pull/34874) | prefix cache; Mamba; CUDA graph metadata |
-| 清零 hybrid Mamba/attention 共享 block pool 的新 attention KV block | fp32 Mamba/SSM state block 被复用为 fp8/fp16 attention KV block 时，旧 bit pattern 可变成 NaN/Inf；attention kernel 的 multiply-by-zero mask 不会清掉 NaN，会污染后续请求 | [#35219](https://github.com/vllm-project/vllm/pull/35219) | KV identity; Mamba/SSM; block zeroing |
-| 增加 per-kernel deterministic dispatch override | deterministic execution 需要 kernel 级 override，因为不同 deterministic 替代方案性能代价差异很大 | [#25404](https://github.com/vllm-project/vllm/issues/25404), [#25603](https://github.com/vllm-project/vllm/pull/25603) | deterministic dispatch |
-| 强制 deterministic reduction strategy | split-K 或 atomic reduction 会随 dispatcher choice 改变；deterministic mode 必须固定 reduction geometry | [#42240](https://github.com/vllm-project/vllm/pull/42240), [#35183](https://github.com/vllm-project/vllm/pull/35183) | deterministic dispatch; ROCm kernels |
-| 首个真实请求前 warm up deterministic serving | 首次 JIT、CUDA graph capture、allocator/cache warming 会让启动输出不同于 steady state | [#33537](https://github.com/vllm-project/vllm/pull/33537) | verification; dispatch |
-| 保持 deterministic weight loading order/lifetime | FP8/NVFP4 权重从共享 streaming buffer 异步加载时，buffer 复用可能造成 corruption | [#38991](https://github.com/vllm-project/vllm/issues/38991) | quant/dtype; loading identity |
-| 保证 decode/prefill 测试使用同一 token prefix | 文本 `decode -> encode` roundtrip 对 BPE tokenizer 不保序，会让 prefill prefix 与 decode prefix 不同并制造 batch-invariant 测试误报；open PR 改用 `prompt_token_ids + decode_tokens[:i]` | [#43317](https://github.com/vllm-project/vllm/pull/43317) | verification; test soundness; defer |
+| 移除不稳定 Triton autotune candidate | `_chunk_cumsum_fwd_kernel` 的 `BLOCK_H=1` 候选会改变数值输出 | [#25194](https://github.com/vllm-project/vllm/issues/25194), [#25197](https://github.com/vllm-project/vllm/pull/25197) | deterministic dispatch |
+| 拆分 deterministic 与 fast ROCm skinny GEMM | `atomicAdd` reduction 不是 bitwise stable；store-then-reduce 才能固定累加顺序 | [#35183](https://github.com/vllm-project/vllm/pull/35183) | deterministic reduction |
+| 将 `VLLM_BATCH_INVARIANT` 传入 MXFP4 MoE kernel config | tokens-per-expert 与 SM count 改变 `block_m` / `split_k` | [#36488](https://github.com/vllm-project/vllm/pull/36488) | batch invariance; MoE |
+| 在 batch-invariant mode 下禁用 cascade attention | 条件性 attention 优化会随同 batch 的其他请求改变 logprob | [#32481](https://github.com/vllm-project/vllm/issues/32481), [#32561](https://github.com/vllm-project/vllm/pull/32561) | batch invariance; attention geometry |
+| AWQ 在 BI mode 下绕开 Marlin 自动转换 | 自动路由到 AWQ_Marlin 会绕开 deterministic matmul override | [#29581](https://github.com/vllm-project/vllm/issues/29581), [#38670](https://github.com/vllm-project/vllm/pull/38670) | batch invariance; quantization |
+| `TRITON_ATTN` 在 BI mode 下固定 2D kernel | decode path 不能再随 batch shape 在 2D/3D unified attention 间切换 | [#33688](https://github.com/vllm-project/vllm/pull/33688) | batch invariance; backend coverage |
+| Cutlass FP8 direct path 使用 fixed-config dispatch | direct FP8 fast path 只有在 config independent of `M` 时才能进入 BI mode | [#40408](https://github.com/vllm-project/vllm/pull/40408) | quantization; batch invariance |
+| `torch.compile` 路径显式控制 cuBLAS 行为 | BI mode 需要关闭 reduced-precision / split-K / workspace 相关不稳定选择 | [#27660](https://github.com/vllm-project/vllm/pull/27660) | compile; deterministic dispatch |
+| 用 per-layer Q-head 数构建 attention metadata | 非均匀 head 模型不能再用 model-wide head count 做 plan/scratch allocation | [#41651](https://github.com/vllm-project/vllm/issues/41651), [#42650](https://github.com/vllm-project/vllm/pull/42650) | attention metadata; low precision |
+| 本地 LoRA cache key 使用稳定 adapter identity | prefix cache hash 不能只看 `lora_name`，要看全局唯一 identity | [#30931](https://github.com/vllm-project/vllm/issues/30931), [#31069](https://github.com/vllm-project/vllm/pull/31069) | KV identity; adapter identity |
+| 修复 Mamba prefix-cache metadata persistent buffer | 多个相同 `MambaSpec` cache group 不能复用旧 builder 的 block-index buffer | [#34865](https://github.com/vllm-project/vllm/issues/34865), [#34874](https://github.com/vllm-project/vllm/pull/34874) | prefix cache; metadata identity |
+| 清零 hybrid Mamba/attention 共享 block pool 的新 attention KV block | fp32 SSM state stale bits 不能被当成 fp8/fp16 KV 读取 | [#35219](https://github.com/vllm-project/vllm/pull/35219) | KV identity; block zeroing |
+| CPU KV offload 先等 compute，再延后提交 store | 高并发 offload 不能在 GPU 计算或 sample-token copy 未完成时搬走 KV | [#31210](https://github.com/vllm-project/vllm/issues/31210), [#31341](https://github.com/vllm-project/vllm/pull/31341) | KV identity; offload ordering |
+
+## 当前边界与待补证
+
+- prefix-cache geometry 主线仍未完全闭环：[#40179](https://github.com/vllm-project/vllm/pull/40179)、[#42699](https://github.com/vllm-project/vllm/issues/42699)、[#40896](https://github.com/vllm-project/vllm/issues/40896)。
+- same-step prefix block 注册与 cache hit 可见性仍在补证：[#37076](https://github.com/vllm-project/vllm/issues/37076)、[#37152](https://github.com/vllm-project/vllm/pull/37152)。
+- external KV 与 runtime LoRA version identity 仍缺最终闭环：[#44250](https://github.com/vllm-project/vllm/issues/44250)、[#42125](https://github.com/vllm-project/vllm/issues/42125)。
+- open workaround / support-gate / review-risk 仍只算边界，不算 landed fix：[#42670](https://github.com/vllm-project/vllm/pull/42670)、[#42240](https://github.com/vllm-project/vllm/pull/42240)、[#39849](https://github.com/vllm-project/vllm/pull/39849)、[#43355](https://github.com/vllm-project/vllm/pull/43355)。
+- warmup、loading-lifetime、test soundness 只作为边界或 defer：[#33537](https://github.com/vllm-project/vllm/pull/33537)、[#38991](https://github.com/vllm-project/vllm/issues/38991)、[#43317](https://github.com/vllm-project/vllm/pull/43317)。
+
+## 反例 / 排除项
+
+- [#33179](https://github.com/vllm-project/vllm/pull/33179)：closed/unmerged 且被 maintainer 直接反驳的 gfx950 FP8 FNuz 归因，不得继续当作 `#33123` 的 dtype 修复证据。
 
 ## 复核优先级
 

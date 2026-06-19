@@ -30,7 +30,6 @@
 | [#40408](https://github.com/vllm-project/vllm/pull/40408) | merged PR 为 Cutlass FP8 scaled-mm 在 sm89/sm90/sm100/sm120 增加 batch-invariant dispatch：BI mode 下 direct FP8 path 可绕过 BF16 dequant，但要求 CUTLASS config independent of `M`；新增 `test_cutlass_fp8_batch_invariant_fixed_config` 覆盖多 weight shape 与 batch size/M 维。 | 低精度 fast path 可以被纳入 BI，但必须证明 config 不随 batch M 维改变；否则 tuning 会重新引入 batch-dependent rounding/reduction。 |
 | [#40413](https://github.com/vllm-project/vllm/pull/40413) | merged PR 去掉 BI mode 下 fused add RMSNorm 强制走 Triton `rms_norm_batch_invariant` 的分支，因为 `fused_add_rms_norm` 自身已是 batch invariant；新增测试覆盖 residual path、hidden size、FP16/BF16，并在 `_custom_ops.py` 标注该 op batch invariant。 | 不应因为进入 BI mode 就盲目替换所有 fused op；如果 fused op 本身已有 batch-invariant 证据，保留原 op 可以减少 dtype/path drift 和性能损失。 |
 | [#41651](https://github.com/vllm-project/vllm/issues/41651), [#42650](https://github.com/vllm-project/vllm/pull/42650) | Laguna XS.2 FP8 + FP8 KV cache 在 sm120 上表现为 random output/garbage logits；PR #42650 将 FlashInfer/Triton metadata builder 的 Q-head source 从 model-wide config 改为 served `Attention` layer 的 `impl.num_heads`。这修复了非均匀 per-layer head count 下 plan-time 48 heads 与 runtime 64 heads 不一致导致的 FlashInfer tail zero 与 Triton scratch 越界。 | FP8 KV 问题不总是 scale/dtype 本身错误，也可能是 low-precision path 的 metadata shape 错误；head count、scratch shape 和 KV dtype 必须一起进入数值语义边界。 |
-| [#38991](https://github.com/vllm-project/vllm/issues/38991) | `runai_safetensors_weights_iterator` 产出的 tensors 可能是 shared numpy buffer view；`BaseModelLoader.load_model()` 在 CUDA target device 下初始化参数后，`param.data.copy_(loaded_weight)` 可能成为 CPU -> CUDA cross-device copy。issue body 的定位实验显示：`tensor.clone()`、每次或最终 `torch.cuda.synchronize()`、改变 stream file 顺序都能让问题不复现；但该 issue 仍为 open，且本地 evidence 中没有 comments、timeline、linked PR、changed files 或 maintainer resolution。 | 该条是高价值 loading-lifetime insight，不是已修复结论。clone/sync/sort-file 只能作为定位证据和候选修复方向；缺上游 patch/test 前保持 defer。 |
 
 ## 根因机制
 
@@ -72,7 +71,7 @@
 
 ## 适用边界
 
-- [#38991](https://github.com/vllm-project/vllm/issues/38991) 仍是 defer：当前只有 issue body，没有 linked fix、changed files、comments、timeline 或 maintainer resolution。适用边界也应保留在 issue body 报告的统一内存平台 + FP8/NVFP4 模型；离散 GPU 与 bf16 路径不能直接外推。
+- [#38991](https://github.com/vllm-project/vllm/issues/38991) 仍是 defer：当前只有 issue body，没有 linked fix、changed files、comments、timeline 或 maintainer resolution。适用边界也应保留在 issue body 报告的统一内存平台 + FP8/NVFP4 模型；离散 GPU 与 bf16 路径不能直接外推。它是 loading-lifetime 风险，不进入代表证据。
 - [#36488](https://github.com/vllm-project/vllm/pull/36488) 同时属于 batch invariance 和 quant/dtype 机制，不能只在一个页面维护。
 - [#42120](https://github.com/vllm-project/vllm/pull/42120) 当前本地 evidence 中仍 open/unmerged，虽然已有 maintainer approval 和 Blackwell 验证；wrong input dtype 缺专门单测，第三方验证的 adapter 没有 routed-expert LoRA 权重，因此不能写成所有 FP8 MoE LoRA 数值都已闭环。
 - [#42379](https://github.com/vllm-project/vllm/pull/42379) 已 merged，但 `#42325` 后续评论对“Python IR 是否是 CUDA spec”提出异议；wiki 结论应约束在该 PR 接受并合并的 native-dtype behavior 与已跑测试，不把 Python IR 扩展成通用规范。

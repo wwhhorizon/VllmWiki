@@ -27,7 +27,6 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | [#33123](https://github.com/vllm-project/vllm/issues/33123) | `temperature=0` 下 cache miss/hit 产生不同 token。 | token equality 可作为用户可见 correctness gate。 |
 | [#34874](https://github.com/vllm-project/vllm/pull/34874) | 新 regression test 不下载模型，而是构造两个共享同一 `MambaSpec` 的 metadata builder，断言 `update_block_table()` 返回的 block index tensor 指向当前 builder 的 persistent buffer，且值正确。issue 评论指出旧 tiny Bamba 测试只有单 Mamba layer，根本不会触发 metadata cache 复用。 | verification 要复现触发拓扑，而不只是覆盖 API happy path；metadata 指针身份可以用 storage sharing 断言。 |
 | [#27660](https://github.com/vllm-project/vllm/pull/27660) | DeepSeek V3.1 + FlashAttention MLA 的 `test_logprobs_bitwise_batch_invariance_bs1_vs_bsN` 通过；PR body 还用多个 `max_model_len` 和 batch size 说明 Inductor reduction kernel thread layout 固定。 | compile path 的验证要同时记录模型、backend、batch/M 维矩阵、PyTorch/cuBLAS flags 和是否启用 AOT compile。 |
-| [#43317](https://github.com/vllm-project/vllm/pull/43317) | open PR 指出 `test_decode_logprobs_match_prefill_logprobs` 原先用文本 `decode -> encode` 构造 prefill prefix；对 BPE tokenizer，`encode(decode(ids)) != ids` 可发生，例子是 Qwen2.5-Coder 中 `'.' + '#'` 可合并为 `'.#'`。patch 改为直接传 `prompt_token_ids + decode_tokens[:i]`，并加 tokenizer-only regression；但 PR 仍 open，review 还认为额外 unit test 可能不需要。 | 验证 decode/prefill logprob equality 时，prefix identity 必须以 token ids 为准；open PR 只能作为测试 soundness 风险，不是已 landed fix。 |
 
 ## 根因机制
 
@@ -62,7 +61,7 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 - `#43355` 的 review comments 应写成 boundary/risk，并且必须和当前 patch 对齐：HND/NHD layout gate 与 key/value size guard 已在 patch 中出现，但 FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，所以该 PR 仍不能直接写成最终修复结论。由于该 PR 在本轮证据中仍为 open/unmerged 且有 merge conflict 提醒，`include` 只能覆盖“验证契约样例”，不能覆盖“landed fix”。
 - `#34874` 的 test 证明了 Mamba `"all"` mode 多 cache group 下的 metadata pointer 修复，但不证明所有 Mamba prefix-cache 或 MTP/spec decode 场景都稳定。
 - `#27660` 的 compile 测试证明特定模型/backend/flag 组合下 logprob batch-invariance 通过；不能把它扩展成所有 `torch.compile`、AOT compile 或所有 cuBLAS algorithm 都稳定。
-- `#43317` 仍 open/unmerged，因此只能作为“现有测试可能误报”的边界记录；不能写成 decode/prefill consistency test 已经修好。
+- `#43317` 仍 open/unmerged，因此只能作为“现有测试可能误报”的边界记录；不进入代表证据，也不能写成 decode/prefill consistency test 已经修好。
 - semantic answer match 只能作为补充，不支持 bitwise/deterministic claim。
 
 ## 仍需补证

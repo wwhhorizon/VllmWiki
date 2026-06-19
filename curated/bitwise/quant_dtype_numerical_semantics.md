@@ -43,7 +43,7 @@
 
 `#42650` 展示的是低精度 metadata shape 问题：FP8 KV cache 让错误 head-count metadata 的后果更快变成 garbage output，但根因不是 FP8 格式本身，而是 FlashInfer/Triton 的 plan-time allocation 与 runtime Q-head 维度不一致。
 
-`#38991` 与同宗的 `#43163/#43464` 则把“weight loading lifetime”从猜测推到了强根因家族。更准确地说，`#38991` 的 issue body 和本地定位实验强烈指向这样一条链路：若 CPU->CUDA copy 尚未完成而 generator 已前进，shared buffer reuse 会在 source tensor 仍被异步消费时改写其 backing storage；`#43163` 的评论与已 merged 的 `#43464` 则进一步证明，即使不在 unified memory 平台，只要 RunAI streamer 允许重用内部 tensor buffer，任何跨 iterator step 保留 tensor 引用的路径都会触发同类 silent weight corruption。上游最终接受的稳健修法是在 `runai_safetensors_weights_iterator` 边界就 `clone()` yielded tensor，并用回归测试验证不同 tensor 不再共享 data pointer。这个 family-level merged fix 显著增强了 `#38991` 的根因可信度，但还不能单独证明 unified-memory + `BaseModelLoader.load_model()` async copy 场景已经被正式回归覆盖。
+`#38991` 与同宗的 `#43163/#43464` 则把“weight loading lifetime”从猜测推到了强根因家族。更准确地说，`#38991` 的 issue body 和本地定位实验强烈指向这样一条链路：若 CPU->CUDA copy 尚未完成而 generator 已前进，shared buffer reuse 会在 source tensor 仍被异步消费时改写其 backing storage；`#43163` 的评论与已 merged 的 `#43464` 则进一步证明，即使不在 unified memory 平台，只要 RunAI streamer 允许重用内部 tensor buffer，任何跨 iterator step 保留 tensor 引用的路径都会触发同类 silent weight corruption。上游最终接受的稳健修法是在 `runai_safetensors_weights_iterator` 边界就 `clone()` yielded tensor，并用回归测试验证不同 tensor 不再共享 data pointer。随后 closed issue `#44430` 与 merged PR `#44645` 又把这条 family 继续往前推了一步：`clone()` 不是多余修法，而是 correctness 所必需；真正需要后续优化的是那些会一次性物化整个 iterator 的模型 loader，它们必须改成 streaming，才能承接 copy-returning loader 的内存代价。这个 family-level merged fix 显著增强了 `#38991` 的根因可信度，但还不能单独证明 unified-memory + `BaseModelLoader.load_model()` async copy 场景已经被正式回归覆盖。
 
 ## 修复方式
 
@@ -73,7 +73,7 @@
 
 ## 适用边界
 
-- [#38991](https://github.com/vllm-project/vllm/issues/38991) 仍是 defer，但本轮已补到同宗已合并修复线：[#43163](https://github.com/vllm-project/vllm/issues/43163) 与 merged PR [#43464](https://github.com/vllm-project/vllm/pull/43464) 证明 RunAI streamer internal reusable buffer 确实会在跨 iterator step 保留 tensor 引用时制造 silent weight corruption，上游接受的稳健修法是让 `runai_safetensors_weights_iterator` 直接 `yield name, tensor.clone()` 并加 data-pointer 级回归测试。它显著增强了 `#38991` 的根因可信度，也很可能覆盖其 corruption mechanism；但仍不能直接当作 `#38991` 已闭环：`#38991` 本身仍 open，缺 direct linked fix、缺 maintainer closure，也缺 unified-memory + `BaseModelLoader.load_model()` async copy 场景的正式 regression test。
+- [#38991](https://github.com/vllm-project/vllm/issues/38991) 仍是 defer，但本轮已补到同宗已合并修复线：[#43163](https://github.com/vllm-project/vllm/issues/43163) 与 merged PR [#43464](https://github.com/vllm-project/vllm/pull/43464) 证明 RunAI streamer internal reusable buffer 确实会在跨 iterator step 保留 tensor 引用时制造 silent weight corruption，上游接受的稳健修法是让 `runai_safetensors_weights_iterator` 直接 `yield name, tensor.clone()` 并加 data-pointer 级回归测试。后续 closed issue [#44430](https://github.com/vllm-project/vllm/issues/44430) 与 merged PR [#44645](https://github.com/vllm-project/vllm/pull/44645) 又说明：`clone()` 带来的 host-RAM 回归，应由 eager materialization 的模型 loader 改成 streaming 来吸收，而不是回退 correctness fix 本身。它们共同显著增强了 `#38991` 的根因可信度，也很可能覆盖其 corruption mechanism；但仍不能直接当作 `#38991` 已闭环：`#38991` 本身仍 open，缺 direct linked fix、缺 maintainer closure，也缺 unified-memory + `BaseModelLoader.load_model()` async copy 场景的正式 regression test。
 - [#36488](https://github.com/vllm-project/vllm/pull/36488) 同时属于 batch invariance 和 quant/dtype 机制，不能只在一个页面维护。
 - [#42120](https://github.com/vllm-project/vllm/pull/42120) 已于 2026-06-19 合并，因此“base batch stale mapping”与“LoRA kernel 错吃量化 activation”这两条主机制已经闭环。但边界仍要保留：PR body 明说 wrong input dtype 缺专门单测，第三方 Blackwell 验证的 adapter 没有 routed-expert LoRA 权重，所以不要把它外推成“所有 FP8 MoE + LoRA 变体都已完全验证”。
 - [#42379](https://github.com/vllm-project/vllm/pull/42379) 已 merged，但 `#42325` 后续评论对“Python IR 是否是 CUDA spec”提出异议；wiki 结论应约束在该 PR 接受并合并的 native-dtype behavior 与已跑测试，不把 Python IR 扩展成通用规范。
@@ -85,7 +85,7 @@
 
 ## 仍需补证
 
-- 对 `#38991`，下一轮不再从零开始找“是否存在 buffer-reuse family”。这条已经被 `#43163/#43464` 补强；现在真正要补的是 unified-memory + `BaseModelLoader.load_model()` async copy 场景是否也能被 iterator-side `clone()` 完全覆盖，还是还需要 loader-side synchronization / ownership contract。
+- 对 `#38991`，下一轮不再从零开始找“是否存在 buffer-reuse family”。这条已经被 `#43163/#43464` 补强，`#44430/#44645` 也说明 memory regression 的正确收口是 loader streaming，而不是撤回 `clone()`；现在真正要补的是 unified-memory + `BaseModelLoader.load_model()` async copy 场景是否也能被 iterator-side `clone()` 完全覆盖，还是还需要 loader-side synchronization / ownership contract。
 - 对 `#42120`，合并状态已闭环；下一轮只需继续补 wrong input dtype 的可维护测试，并确认 routed-expert LoRA weights 非零时的 adapter path 也稳定。
 - 对 `#42325/#42379` 继续记录 spec 讨论结果：如果未来 CUDA 侧改回 FP32，应同步更新 reference boundary，而不是只看某一侧实现。
 - 追踪 AWQ_Marlin 是否未来提供 deterministic fused path；追踪 Cutlass FP8 tuning 和 fused norm 优化是否保持 batch-invariant tests。

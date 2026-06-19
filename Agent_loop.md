@@ -75,6 +75,7 @@
 - 专题 `README` 主表只收稳定主机制：至少要能直接解释 `token/logprob/KV/tensor/metadata identity` 的变化，并且已有 patch、test 或 maintainer resolution 闭环。
 - 专题 `README` 主表中的每个条目都必须能在 ledger 中对应到 `risk_status=stable`；如果 ledger 仍是 `include_with_boundary`、`defer` 或 `unresolved_review_risk`，优先修 ledger 判断或把主表条目降回边界。
 - 专题 `next.md` 默认拆成两层：`主线核心缺口` 和 `辅助边界队列`。前者只放直接阻塞 bitwise 主机制闭环的项，例如 cache identity、adapter/version identity、prefix-cache equivalence、kernel geometry、dispatch/reduction root cause；后者才放 warmup、test soundness、support gate、selector fallback、semantic-only 旁证。
+- `辅助边界队列` 不追求穷尽所有 open item；只保留仍可能改变主线判断、或下一轮需要专门防错的边界项。已经 stable 的长期 coverage 扩展默认回到机制页或 ledger，不单列占用 queue。
 - 每轮优先从 `主线核心缺口` 取 1-3 项；只有当核心缺口暂时没有新增证据窗口，或某个辅助边界会直接影响主线判断时，才处理 `辅助边界队列`。
 - `defer` 项若继续保留在主线队列，必须写清它到底缺的是哪一种闭环：`direct linked fix / maintainer closure / changed files / regression test / version schema / verification matrix`。如果缺口只剩一般性的“继续观察”，应降到辅助边界。
 - 机制页的 `代表证据` 只放闭环证据：必须同时支撑现象、root cause、fix/workaround 和 verification。open PR、unresolved review risk、support gate、selector fallback、warmup、test soundness、semantic-only 结果，默认降到 `适用边界` 或 `仍需补证`。

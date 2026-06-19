@@ -5,10 +5,11 @@
 
 ## 本页使用方式
 
-- 本页只追踪未闭环项：`defer`、`include_with_boundary`、`unresolved_review_risk` 和 open workaround。
+- 本页只保留当前优先追踪的未闭环项：`defer`、`include_with_boundary`、`unresolved_review_risk` 和 open workaround。
 - 稳定结论已下沉到对应机制页和专题入口，不在这里重复维护。
-- 本页分成 `主线核心缺口`、`辅助机制边界`、`验证与支撑边界`、`已稳定机制的覆盖扩展` 四层；每轮优先处理前者。
-- warmup、test soundness、support gate、selector fallback 默认进入 `验证与支撑边界`，不与主线 closure 竞争优先级。
+- 本页默认只保留两层：`主线核心缺口` 和 `辅助边界队列`；每轮优先处理前者。
+- warmup、test soundness、support gate、selector fallback、review risk、reference boundary 和 contract-only 辅助项统一进入 `辅助边界队列`，不与主线 closure 竞争优先级。
+- 已稳定机制的长期 coverage 扩展回到对应机制页和 ledger，不再单独占用本队列。
 
 ## 主线核心缺口
 
@@ -18,40 +19,22 @@
 | [#42125](https://github.com/vllm-project/vllm/issues/42125) | runtime LoRA / prefix cache identity | defer | 现已抓到 closed 的 [#42495](https://github.com/vllm-project/vllm/pull/42495) 和更新的 open PR [#45981](https://github.com/vllm-project/vllm/pull/45981)。与早先更激进的 `#42495` 不同，`#45981` 主动把 claim 缩到“本地可读 source 的 loader-effective content identity”：选中的 weight file、canonicalized `adapter_config.json`、`is_3d_lora_weight` 与 tensorizer config 一起进 `lora_cache_key`，并由 serving load path 与 `process_inputs` backstop 共用 `ensure_lora_cache_key` 填充；block-hash extra keys 也拆成 `("lora", name) + ("lora_identity", id)` 两层。测试除 same-name different-path、same-path different-cache-key、same-content same-key、config/weight 变化改 key 外，还覆盖了 safetensors 优先级、length framing collision、relative path path-only fallback。这条线的 patch 结构、identity 定义、fill 点与测试矩阵已经很成型；当前真正剩下的不是 reviewer 已经指出的 patch correctness 漏洞，而是 PR 自己明确保留的 source/部署边界：HF Hub、relative/remote path、tensorizer/shared-nothing、多节点 rolling-upgrade、external KV connector、TOCTOU，以及截至 2026-06-20 仍缺 substantive maintainer review。 | 优先追踪 `#45981` 的 merge 与后续 maintainer review；确认 unload/reload、same-path content change、block-hash extra key、path-only warning 与 old EngineCore peer/rolling-upgrade 边界是否保留，并把未覆盖 source/TOCTOU/external-KV 边界继续留在 defer。 |
 | [#44250](https://github.com/vllm-project/vllm/issues/44250) | external KV / LoRA identity | defer | 现已抓到 linked PR [#45549](https://github.com/vllm-project/vllm/pull/45549)：它把 `lora_name` 折进 `LMCacheMPConnector` 的 internal cache salt，并补 unit test；issue comment 还指向上游 LMCache draft PR [#2962](https://github.com/LMCache/LMCache/pull/2962)。新增 insight 是：external KV 的闭环不是单个 salt 字段，而是 vLLM connector 的 internal salt、LMCache 的 chunk-hash / `CacheEngineKey.tags` / L2 object key 三层都要一致带上 adapter identity。与之前不同，LMCache `#2962` 现在已经扩到 MP connector、multi-process adapter 和 object-key codec，不再只是 V1 路径；但它仍 open/dirty、review 还在收敛 schema 应落在哪一层 key 上。相比 `#42125`，这条线仍更像“跨仓 schema 还未统一的系统级缺口”：`#45549` 只补了 vendored MP connector salt 层，而上游统一 schema 仍未落地。 | 继续追踪 `#45549` 与 LMCache `#2962` 的合并；确认 MP lookup/store key、vendored connector、chunk-hash/CacheEngineKey.tags/L2 object key、same-adapter hit 保留与跨 adapter negative regression test 同步闭环。 |
 
-## 辅助机制边界
+## 辅助边界队列
 
-| Source | 机制 | 下一步 |
+| Source | 角色 | 下一步 |
 | --- | --- | --- |
-| [#42699](https://github.com/vllm-project/vllm/issues/42699) / [#40896](https://github.com/vllm-project/vllm/issues/40896) | prefix cache 等价 | 继续按“默认 prefix-cache 路径下的 exact reproducibility 契约边界”维护，而不是作为主线 direct-closure 缺口反复追逐：现有评论证据已显示 `fp32` 与 `VLLM_BATCH_INVARIANT=1` 可以让复现收敛，`#40896` maintainer 也明确说 prefix caching determinism 目前还未完全支持。后续只在出现 prefix-cache 专属 linked fix、官方 docs 声明变化、或新的 regression test/changed files 时，再升回主线复核。 |
-| [#37076](https://github.com/vllm-project/vllm/issues/37076) / [#37152](https://github.com/vllm-project/vllm/pull/37152) | prefix cache / KV block identity | 继续按“same-step registration visibility / block lifecycle 的 contested hypothesis”维护，而不是作为主线 direct-closure 缺口反复追逐：`#37152` 提供了 BlockPool same-step miss gate 与复现实验，但 maintainer 明确指出 same-step KV sharing 按设计允许，因为写 KV 发生在 attention 之前；closed/unmerged 的 [#38715](https://github.com/vllm-project/vllm/pull/38715) 虽补了 regression tests，作者也在收到该反馈后主动撤回 blanket guard。后续只有在出现 runtime instrumentation、maintainer-accepted patch、或新的 lifecycle trace 明确证明设计前提失效时，再升回主线复核。 |
-| [#42513](https://github.com/vllm-project/vllm/issues/42513) / [#42518](https://github.com/vllm-project/vllm/issues/42518) | MTP/spec decode kernel selection | 继续按 batch-invariant 契约边界维护，而不是作为主线 direct-closure 缺口反复追逐；只有在上游出现 selective fix、官方 eager-vs-BI contract test、文档化声明变化或新的 changed files 时，再升回主线复核。 |
-| [#40179](https://github.com/vllm-project/vllm/pull/40179) | prefix cache 等价 | 继续追踪 follow-up patch：用 `num_computed_tokens` 判断 prefill、用 `(num_prompt_tokens - 1)` 计算 block boundary，并补 resumed request 与 block-aligned prompt 回归测试。 |
-| [#42240](https://github.com/vllm-project/vllm/pull/42240) | deterministic reduction | 继续追踪 PR 是否转为 ready/merged，以及上游 AITER 是否落地 deterministic split-K 修复；当前仍按 scoped workaround 维护，不外推到非 128x128 block-scaled shape。 |
-
-## 验证与支撑边界
-
-| Source | 机制 | 下一步 |
-| --- | --- | --- |
-| [#43355](https://github.com/vllm-project/vllm/pull/43355) | verification contract | 追踪 FP8 conversion 是否改为 `qk_t`/浮点输入，以及 NHD layout gate、key/value row guard 是否被 maintainer 接受并进入最终合并版本；未闭环前只作为 verification boundary/risk。 |
-| [#42670](https://github.com/vllm-project/vllm/pull/42670) | batch invariance support gate | 追踪 PR merge/CI；若继续推进，优先补轻量 selector/support-gate 测试，证明 `VLLM_BATCH_INVARIANT=1` 下 FlashInfer 与 CUTLASS FP4 MoE 不再被 `False` gate 拦截。 |
-| [#42325](https://github.com/vllm-project/vllm/issues/42325) / [#42379](https://github.com/vllm-project/vllm/pull/42379) | RMSNorm dtype semantics | 若后续 maintainer 重新定义 CUDA reference 为 FP32 multiply，要同步改机制页的 reference boundary。 |
-| [#34878](https://github.com/vllm-project/vllm/pull/34878) | ROCm beam search verification | 可补到 verification matrix：beam search/ranking 需要 logprob ranking 稳定，`semantic output same` 不够。 |
-| [#39849](https://github.com/vllm-project/vllm/pull/39849) | ROCm backend selector workaround | 继续按 selector fallback/workaround 维护，而不是当作主线 closure：追踪 PR merge/CI；补 patched Qwen3-VL reranker score regression，并确认 gfx9 gqa_ratio 2/4 以外 shape 未误路由。 |
-| [#33537](https://github.com/vllm-project/vllm/pull/33537) | cold-start warmup | 只在找到 first-request token/logprob divergence 复现后再提升；否则保持 latency/warmup boundary。 |
-| [#43317](https://github.com/vllm-project/vllm/pull/43317) | decode/prefill test soundness | 追踪 PR 是否合并；如果未合并，所有 decode/prefill logprob mismatch 都要先排除 tokenizer roundtrip 改写 prefix 的误报。 |
-
-## 已稳定机制的覆盖扩展
-
-| Source | 机制 | 下一步 |
-| --- | --- | --- |
-| [#43741](https://github.com/vllm-project/vllm/pull/43741) | recycled KV block zeroing | 追踪 PR merge；若最终 patch 改动，确认 spec gate、`new_block_ids` tracking 和 patched e2e validation 都保留。 |
-| [#25603](https://github.com/vllm-project/vllm/pull/25603) | batch-invariant plumbing | 后续检查更多 kernels 是否接入 `VLLM_BATCH_INVARIANT`，尤其是 review 中提到的 multidim `torch.sum` / mean deterministic reduction。 |
-| [#32561](https://github.com/vllm-project/vllm/pull/32561) | cascade attention gate | 后续只追踪评论拆出的独立问题：FlashInfer CTA tile/chunked prefill、MLA、MoE router gate、AWQ 长输出；不要把这些缺口归到 cascade attention fix 本身。 |
-| [#38670](https://github.com/vllm-project/vllm/pull/38670) | AWQ/Marlin batch invariance | 只在后续出现 deterministic AWQ_Marlin fused path 后再改结论；当前维持“BI mode 绕开 Marlin”的性能换确定性边界。 |
-| [#30018](https://github.com/vllm-project/vllm/pull/30018) | FA2/LoRA batch invariance | 查找后续 CUDA graph compatible FA2 BI patch，并补 LoRA landed-code split-K 子路径；未闭环前不要把 `enforce_eager` 测试外推到 CUDA graph serving。 |
-| [#33688](https://github.com/vllm-project/vllm/pull/33688) | TRITON_ATTN backend coverage | 追踪 MLA、FlashInfer、chunked prefill 和其他 Triton attention variant 是否进入 decode-invariant backend list。 |
-| [#40408](https://github.com/vllm-project/vllm/pull/40408) | Cutlass FP8 fixed-config path | 后续 Cutlass FP8 tuning 改动都要重新检查 config 是否仍 independent of `M`，并跑多 batch-size/M 维测试。 |
-| [#40413](https://github.com/vllm-project/vllm/pull/40413) | fused add RMSNorm | 审查其他 fused norm/quant op 是否有同等 BI 证据；没有测试前不要套用该结论。 |
+| [#42699](https://github.com/vllm-project/vllm/issues/42699) / [#40896](https://github.com/vllm-project/vllm/issues/40896) | prefix-cache 默认 exact reproducibility 契约边界 | 继续按“默认 prefix-cache 路径下的 exact reproducibility 契约边界”维护，而不是作为主线 direct-closure 缺口反复追逐：现有评论证据已显示 `fp32` 与 `VLLM_BATCH_INVARIANT=1` 可以让复现收敛，`#40896` maintainer 也明确说 prefix caching determinism 目前还未完全支持。后续只在出现 prefix-cache 专属 linked fix、官方 docs 声明变化、或新的 regression test/changed files 时，再升回主线复核。 |
+| [#37076](https://github.com/vllm-project/vllm/issues/37076) / [#37152](https://github.com/vllm-project/vllm/pull/37152) | same-step registration visibility / block lifecycle contested hypothesis | 继续按“same-step registration visibility / block lifecycle 的 contested hypothesis”维护，而不是作为主线 direct-closure 缺口反复追逐：`#37152` 提供了 BlockPool same-step miss gate 与复现实验，但 maintainer 明确指出 same-step KV sharing 按设计允许，因为写 KV 发生在 attention 之前；closed/unmerged 的 [#38715](https://github.com/vllm-project/vllm/pull/38715) 虽补了 regression tests，作者也在收到该反馈后主动撤回 blanket guard。后续只有在出现 runtime instrumentation、maintainer-accepted patch、或新的 lifecycle trace 明确证明设计前提失效时，再升回主线复核。 |
+| [#42513](https://github.com/vllm-project/vllm/issues/42513) / [#42518](https://github.com/vllm-project/vllm/issues/42518) | eager-vs-BI contract boundary | 继续按 batch-invariant 契约边界维护，而不是作为主线 direct-closure 缺口反复追逐；只有在上游出现 selective fix、官方 eager-vs-BI contract test、文档化声明变化或新的 changed files 时，再升回主线复核。 |
+| [#40179](https://github.com/vllm-project/vllm/pull/40179) | prefix-cache follow-up patch | 继续追踪 follow-up patch：用 `num_computed_tokens` 判断 prefill、用 `(num_prompt_tokens - 1)` 计算 block boundary，并补 resumed request 与 block-aligned prompt 回归测试。 |
+| [#42240](https://github.com/vllm-project/vllm/pull/42240) | deterministic reduction scoped workaround | 继续追踪 PR 是否转为 ready/merged，以及上游 AITER 是否落地 deterministic split-K 修复；当前仍按 scoped workaround 维护，不外推到非 128x128 block-scaled shape。 |
+| [#43355](https://github.com/vllm-project/vllm/pull/43355) | open review risk / verification boundary | 追踪 FP8 conversion 是否改为 `qk_t`/浮点输入，以及 NHD layout gate、key/value row guard 是否被 maintainer 接受并进入最终合并版本；未闭环前只作为 verification boundary/risk。 |
+| [#42670](https://github.com/vllm-project/vllm/pull/42670) | support-gate workaround | 追踪 PR merge/CI；若继续推进，优先补轻量 selector/support-gate 测试，证明 `VLLM_BATCH_INVARIANT=1` 下 FlashInfer 与 CUTLASS FP4 MoE 不再被 `False` gate 拦截。 |
+| [#42325](https://github.com/vllm-project/vllm/issues/42325) / [#42379](https://github.com/vllm-project/vllm/pull/42379) | reference boundary follow-up | 若后续 maintainer 重新定义 CUDA reference 为 FP32 multiply，要同步改机制页的 reference boundary。 |
+| [#34878](https://github.com/vllm-project/vllm/pull/34878) | verification matrix boundary | 可补到 verification matrix：beam search/ranking 需要 logprob ranking 稳定，`semantic output same` 不够。 |
+| [#39849](https://github.com/vllm-project/vllm/pull/39849) | selector fallback workaround | 继续按 selector fallback/workaround 维护，而不是当作主线 closure：追踪 PR merge/CI；补 patched Qwen3-VL reranker score regression，并确认 gfx9 gqa_ratio 2/4 以外 shape 未误路由。 |
+| [#33537](https://github.com/vllm-project/vllm/pull/33537) | warmup boundary | 只在找到 first-request token/logprob divergence 复现后再提升；否则保持 latency/warmup boundary。 |
+| [#43317](https://github.com/vllm-project/vllm/pull/43317) | test soundness boundary | 追踪 PR 是否合并；如果未合并，所有 decode/prefill logprob mismatch 都要先排除 tokenizer roundtrip 改写 prefix 的误报。 |
 
 ## 不应 Promotion 的情况
 

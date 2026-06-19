@@ -45,8 +45,8 @@
 
 ## 辅助边界
 
-- 仍然贴着主线、但当前更适合作为边界维护的条目，主要是：[#42699](https://github.com/vllm-project/vllm/issues/42699) / [#40896](https://github.com/vllm-project/vllm/issues/40896)、[#37076](https://github.com/vllm-project/vllm/issues/37076) / [#37152](https://github.com/vllm-project/vllm/pull/37152)、[#42513](https://github.com/vllm-project/vllm/issues/42513) / [#42518](https://github.com/vllm-project/vllm/issues/42518)、[#40179](https://github.com/vllm-project/vllm/pull/40179)。
-- open workaround、support-gate、review-risk、warmup 和 test-soundness 项继续统一维护在 [next.md](next.md)，但不再在专题入口重复展开，以免把验证/支撑问题写得像主线 closure。
+- prefix-cache 默认 exact reproducibility 契约、same-step sharing 假说、eager-vs-BI contract，以及 open workaround、support-gate、selector fallback、warmup、test-soundness 等辅助项，统一维护在 [next.md](next.md)。
+- 这些条目只有在出现 linked fix、maintainer closure、changed files 或 regression test，并且会直接改变主线判断时，才升回专题入口。
 
 ## 反例 / 排除项
 

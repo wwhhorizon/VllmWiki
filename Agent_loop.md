@@ -84,7 +84,24 @@
 - 同一 PR 若同时包含稳定核心和未闭环子结论，必须拆开写；不能整条 promotion。
 - `open/unmerged + unresolved review risk` 只能进入 `next.md` 或机制页边界段，不能进入专题总览主表。
 - 每次 promotion 都要声明保护对象：`bit-identical / strict numeric tolerance / logprob ranking / token equality / KV identity / metadata identity / semantic only`。
-- 每次 promotion 都要做分类压力检查：如果现有机制不能自然解释 root cause、fix pattern 和 verification contract，先保持 `defer` 并在 ledger 写明分类缺口；不要为了维持目录稳定把 claim 硬塞进旧机制。新增机制分类的静态条件见 [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md)。
+
+## 分类压力检查
+
+机制分类是开放 taxonomy，不是封闭全集。每轮处理 claim 时必须检查：现有机制是否能自然解释 root cause、fix pattern 和 verification contract。不能为了维持目录稳定，把新问题硬塞进旧机制。
+
+如果一个 claim 无法自然映射到现有机制：
+
+- 先保持 `candidate`、`defer` 或 `blocked`，不要 promotion。
+- 在 ledger 的 `blocking_reason` 或 `next_action` 写清分类缺口。
+- 只有当 source evidence 至少支撑现象和根因方向时，才讨论新增机制页。
+
+新增机制页或机制族必须同时满足：
+
+- 现有机制无法解释它的 root cause、fix pattern 和 verification contract。
+- 它不是单个 backend、模型或硬件的孤立特例，而是可能重复出现的工程机制。
+- 它能减少混淆，避免把不同修法、不同验证契约的 claim 混在同一机制页。
+
+如果一个 claim 只是已有机制的边界、反例、support gate、workaround 或 test placement，不新增机制页；应写入对应机制页的 `适用边界` / `仍需补证`，或进入专题 `next.md`。
 
 ## 输出
 

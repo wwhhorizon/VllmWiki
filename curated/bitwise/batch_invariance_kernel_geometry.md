@@ -40,7 +40,7 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 
 `#42513/#42518` 则提供了一个更适合写成契约边界、而不是“等待 landed fix”的案例。作者先用 `#42513` 给出最小 root-cause 假说，随后在 `#42518` 提供完整复现矩阵、maintainer 评论和后续 prototype 线索。现有最佳证据支持这样一条链路：MTP verification forward 的 batch_size=2 与普通 decode 的 batch_size=1 改变 eager 模式下的 attention GEMM 几何，1-2 ULP BF16 差异写入 KV 后在后续 decode 中放大到 token 分叉；而 maintainer 明确把这类 exact reproducibility 需求收口到 `VLLM_BATCH_INVARIANT=1`，没有接受单独的官方 fix PR。
 
-`#42699/#40896` 也显示出同样的收口方式：对 prefix-read/no-prefix-read、cold/warm prefix cache 这类 exact reproducibility 报告，评论证据表明 `fp32` 或 `VLLM_BATCH_INVARIANT=1` 都能让输出重新收敛；其中 `#42699` 还把缓解直接指向已合并的 [#40193](https://github.com/vllm-project/vllm/pull/40193)。这说明在当前上游语义下，默认 prefix-cache path 的这类差异更适合先解释为 batch/query-length 改变 backend geometry 的数值路径边界，而不是先假设存在独立的 prefix-cache KV corruption。
+`#42699/#40896` 也显示出同样的收口方式：对 prefix-read/no-prefix-read、cold/warm prefix cache 这类 exact reproducibility 反馈，评论证据表明 `fp32` 或 `VLLM_BATCH_INVARIANT=1` 都能让输出重新收敛；其中 `#42699` 还把缓解直接指向已合并的 [#40193](https://github.com/vllm-project/vllm/pull/40193)。这说明在当前上游语义下，默认 prefix-cache path 的这类差异更适合先解释为 batch/query-length 改变 backend geometry 的数值路径边界，而不是先假设存在独立的 prefix-cache KV corruption。
 
 ## 修复方式
 

@@ -15,27 +15,22 @@
 - [量化与 Dtype 数值语义](quant_dtype_numerical_semantics.md)
 - [Bitwise 工作的验证契约](verification_contracts.md)
 - [Deterministic Dispatch 与 Reduction Control](deterministic_dispatch_reduction.md)
+- [对 Kernel 优化的约束](implications_for_kernels.md)
 
-本地复核队列 `curated/bitwise_review_queue.*` 属于可再生候选材料，不提交到 GitHub。稳定结论进入本页和六个机制页；待复核 claim 进入 [candidates/bitwise_ledger.csv](../../candidates/bitwise_ledger.csv)。
+本地复核队列 `curated/bitwise_review_queue.*` 属于可再生候选材料，不提交到 GitHub。稳定结论进入本页、机制页和必要的桥接页；待复核 claim 进入 [candidates/bitwise_ledger.csv](../../candidates/bitwise_ledger.csv)。
 
-## 稳定主机制
+## 稳定机制族
 
-| 机制 | 修复对象 | 源证据 | Wiki pattern |
-| --- | --- | --- | --- |
-| 移除不稳定 Triton autotune candidate | `_chunk_cumsum_fwd_kernel` 的 `BLOCK_H=1` 候选会改变数值输出 | [#25194](https://github.com/vllm-project/vllm/issues/25194), [#25197](https://github.com/vllm-project/vllm/pull/25197) | deterministic dispatch |
-| 拆分 deterministic 与 fast ROCm skinny GEMM | `atomicAdd` reduction 不是 bitwise stable；store-then-reduce 才能固定累加顺序 | [#35183](https://github.com/vllm-project/vllm/pull/35183) | deterministic reduction |
-| 将 `VLLM_BATCH_INVARIANT` 传入 MXFP4 MoE kernel config | tokens-per-expert 与 SM count 改变 `block_m` / `split_k` | [#36488](https://github.com/vllm-project/vllm/pull/36488) | batch invariance; MoE |
-| 在 batch-invariant mode 下禁用 cascade attention | 条件性 attention 优化会随同 batch 的其他请求改变 logprob | [#32481](https://github.com/vllm-project/vllm/issues/32481), [#32561](https://github.com/vllm-project/vllm/pull/32561) | batch invariance; attention geometry |
-| AWQ 在 BI mode 下绕开 Marlin 自动转换 | 自动路由到 AWQ_Marlin 会绕开 deterministic matmul override | [#29581](https://github.com/vllm-project/vllm/issues/29581), [#38670](https://github.com/vllm-project/vllm/pull/38670) | batch invariance; quantization |
-| `TRITON_ATTN` 在 BI mode 下固定 2D kernel | decode path 不能再随 batch shape 在 2D/3D unified attention 间切换 | [#33688](https://github.com/vllm-project/vllm/pull/33688) | batch invariance; backend coverage |
-| Cutlass FP8 direct path 使用 fixed-config dispatch | direct FP8 fast path 只有在 config independent of `M` 时才能进入 BI mode | [#40408](https://github.com/vllm-project/vllm/pull/40408) | quantization; batch invariance |
-| FP8 MoE LoRA 分离 base activation 与 adapter activation 语义 | 无 active LoRA 的 base batch 不能继承 stale mapping；LoRA kernel 不能直接消费量化后的 base activation | [#42007](https://github.com/vllm-project/vllm/issues/42007), [#42120](https://github.com/vllm-project/vllm/pull/42120) | quantization; LoRA; MoE |
-| `torch.compile` 路径显式控制 cuBLAS 行为 | BI mode 需要关闭 reduced-precision / split-K / workspace 相关不稳定选择 | [#27660](https://github.com/vllm-project/vllm/pull/27660) | compile; deterministic dispatch |
-| 用 per-layer Q-head 数构建 attention metadata | 非均匀 head 模型不能再用 model-wide head count 做 plan/scratch allocation | [#41651](https://github.com/vllm-project/vllm/issues/41651), [#42650](https://github.com/vllm-project/vllm/pull/42650) | attention metadata; low precision |
-| 本地 LoRA cache key 使用稳定 adapter identity | prefix cache hash 不能只看 `lora_name`，要看全局唯一 identity | [#30931](https://github.com/vllm-project/vllm/issues/30931), [#31069](https://github.com/vllm-project/vllm/pull/31069) | KV identity; adapter identity |
-| 修复 Mamba prefix-cache metadata persistent buffer | 多个相同 `MambaSpec` cache group 不能复用旧 builder 的 block-index buffer | [#34865](https://github.com/vllm-project/vllm/issues/34865), [#34874](https://github.com/vllm-project/vllm/pull/34874) | prefix cache; metadata identity |
-| 清零 hybrid Mamba/attention 共享 block pool 的新 attention KV block | fp32 SSM state stale bits 不能被当成 fp8/fp16 KV 读取 | [#35219](https://github.com/vllm-project/vllm/pull/35219) | KV identity; block zeroing |
-| CPU KV offload 先等 compute，再延后提交 store | 高并发 offload 不能在 GPU 计算或 sample-token copy 未完成时搬走 KV | [#31210](https://github.com/vllm-project/vllm/issues/31210), [#31341](https://github.com/vllm-project/vllm/pull/31341) | KV identity; offload ordering |
+本页只保留机制族级入口，避免把专题入口变成长表。具体 issue/PR、patch、验证和适用边界维护在各机制页；仍是 `include_with_boundary`、`defer` 或 `unresolved_review_risk` 的条目只进入 [next.md](next.md) 或机制页边界段。
+
+| 机制族 | 已稳定结论 | 机制页 |
+| --- | --- | --- |
+| dispatch / reduction | autotune candidate、split-K、atomic reduction、cuBLAS/workspace 和 backend selector 都必须进入 deterministic contract；fast path 不能借用 deterministic path 的 correctness claim。 | [Deterministic Dispatch 与 Reduction Control](deterministic_dispatch_reduction.md) |
+| batch / kernel geometry | batch composition 不能改变同一请求的 kernel geometry、attention path、MoE tile 或 quantized matmul config；BI mode 必须能真正到达固定几何路径。 | [Batch Invariance 与 Kernel Geometry](batch_invariance_kernel_geometry.md) |
+| KV / metadata identity | KV block、block table、persistent buffer、offload store、LoRA adapter 和 external cache key 都必须携带足够身份维度，不能跨请求或跨生命周期复用错误内容。 | [并发下的 KV Cache Identity](kv_cache_identity_concurrency.md) |
+| quant / dtype semantics | 低精度路径的 dtype guard、scale layout、fusion math dtype、LoRA activation 和 loading lifetime 都是数值语义的一部分，不能只按“kernel 能跑”判断。 | [量化与 Dtype 数值语义](quant_dtype_numerical_semantics.md) |
+| prefix-cache equivalence | cache miss、cache hit、cache bypass 与 Mamba metadata replay 要保持 token/logprob/metadata identity；open 的默认 exact reproducibility 问题先按契约边界维护。 | [Prefix Cache 等价](prefix_cache_equivalence.md) |
+| verification contracts | 每条结论必须声明保护对象和比较契约：bit-identical、strict tolerance、logprob ranking、token equality、KV identity、metadata identity 或 semantic only。 | [Bitwise 工作的验证契约](verification_contracts.md) |
 
 ## 主线核心缺口
 

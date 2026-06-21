@@ -2,9 +2,9 @@
 
 The script reads the current VllmWiki bitwise review queue, candidate ledger,
 and curated bitwise pages, then fetches only the upstream issue/PR evidence
-needed for that focus area. Raw evidence is written outside the wiki repo under
-``all/data/targeted/bitwise`` so the GitHub source layer stays separate from
-the curated wiki.
+needed for that focus area. Raw evidence is written outside the wiki repo in
+the targeted source layer so the GitHub source layer stays separate from the
+curated wiki.
 """
 
 from __future__ import annotations

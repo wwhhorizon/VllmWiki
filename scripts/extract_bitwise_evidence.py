@@ -280,7 +280,7 @@ def write_md(rows: list[dict[str, str]]) -> None:
     lines = [
         "# Bitwise Source Evidence Index",
         "",
-        "状态：由 `scripts/extract_bitwise_evidence.py` 从 `all/data/targeted/bitwise` 生成。",
+        "状态：由 `scripts/extract_bitwise_evidence.py` 从仓库外 targeted source layer 生成。",
         "用途：把 issue body、issue comments、PR body、changed files、review comments、reviews、commits 和 timeline 统一索引，供后续 ledger promotion 和机制页复核使用。",
         "",
         "## Coverage",

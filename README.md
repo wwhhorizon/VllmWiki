@@ -22,7 +22,7 @@ VllmWiki 的核心不是一次性报告，而是持续炼化流程：
 | 文档 | 作用 |
 | --- | --- |
 | [Agent_loop.md](Agent_loop.md) | Codex agent 自主迭代规划 |
-| [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md) | 仓库结构、证据规则、质量门和机制页模板 |
+| [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md) | 仓库边界、证据规则、静态质量门和机制页模板 |
 | [curated/bitwise/README.md](curated/bitwise/README.md) | 当前 bitwise 专题入口 |
 | [candidates/bitwise_ledger.csv](candidates/bitwise_ledger.csv) | 当前专题 claim 的 include/defer/exclude 账本 |
 
@@ -32,7 +32,7 @@ VllmWiki 的核心不是一次性报告，而是持续炼化流程：
 VllmWiki/
 ├── README.md                         # 项目概览、迭代流程和阅读路线
 ├── Agent_loop.md                     # Codex 自主迭代规划
-├── WIKI_IMPLEMENTATION.md            # 维护规范、质量门与机制页模板
+├── WIKI_IMPLEMENTATION.md            # 仓库边界、证据规则、质量门与机制页模板
 ├── curated/                          # 人工/agent 复核后的结论层
 │   └── bitwise/                      # 当前 bitwise 专题
 ├── candidates/                       # claim 决策账本

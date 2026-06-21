@@ -25,6 +25,8 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | [#34874](https://github.com/vllm-project/vllm/pull/34874) | 新 regression test 不下载模型，而是构造两个共享同一 `MambaSpec` 的 metadata builder，断言 `update_block_table()` 返回的 block index tensor 指向当前 builder 的 persistent buffer，且值正确。issue 评论指出旧 tiny Bamba 测试只有单 Mamba layer，根本不会触发 metadata cache 复用。 | verification 要复现触发拓扑，而不只是覆盖 API happy path；metadata 指针身份可以用 storage sharing 断言。 |
 | [#27660](https://github.com/vllm-project/vllm/pull/27660) | DeepSeek V3.1 + FlashAttention MLA 的 `test_logprobs_bitwise_batch_invariance_bs1_vs_bsN` 通过；PR body 还用多个 `max_model_len` 和 batch size 说明 Inductor reduction kernel thread layout 固定。 | compile path 的验证要同时记录模型、backend、batch/M 维矩阵、PyTorch/cuBLAS flags 和是否启用 AOT compile。 |
 
+| [#44319](https://github.com/vllm-project/vllm/issues/44319), [#44504](https://github.com/vllm-project/vllm/pull/44504) | 用户报告请求不同数量的 top-k logprobs 时，同一 token 的 logprob 值会变化，甚至翻转 argmax。评论确认根因不是 sampling/count bug，而是 token-string collision：多个不同 token id 被渲染成同一个 string，导致 `top_logprobs` 返回的条目数少于请求数，且某个 token 的 logprob 看起来“变了”。纯 vLLM v0.22.0 + offline LLM API + `temperature=0` 下 per-token logprob 值实际稳定；行为变化可追溯到特定 PR。修复 PR `#44504` 改 `detokenizer_utils.py` 和 `test_detokenize.py`，但仍 open/unmerged。 | token id 到 string 的映射不是一对一的；多个 token id 可碰撞到同一 string，这会让 `top_logprobs` 的值看起来不稳定。验证 logprob equality 时必须按 token id 比较，而不是按 detokenized string 比较。 |
+
 ## 根因机制
 
 验证契约错误会让 correctness bug 伪装成“可接受数值误差”。对于 cache identity、KV write、layer identity、metadata layout 这类语义对象，近似相等通常不够；对于 backend math drift，strict tolerance 可以作为中间证据，但还必须证明不会翻转 token 或破坏 logprob ranking。
@@ -61,6 +63,8 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | [#43355](https://github.com/vllm-project/vllm/pull/43355) | fused RoPE + KV write correctness | layout gate、slot uniqueness、row-size guard、dtype conversion type、patched/unpatched kernel compare | fused write bit-identical 或严格数值契约 + token/logprob 不翻转 | 只凭 open PR 的 bitwise test 名称；忽略 remaining review risk |
 | [#34878](https://github.com/vllm-project/vllm/pull/34878) | beam-search / ranking verification harness | ROCm-specific engine kwargs、prefix-cache on/off、skinny GEMM on/off、batch geometry 固定前后对照 | logprob ranking 稳定；beam choice 不被 `1e-5` 级 drift 翻转 | `semantic output same`；把 test-harness 固定外推成 production guarantee |
 
+| [#44319](https://github.com/vllm-project/vllm/issues/44319), [#44504](https://github.com/vllm-project/vllm/pull/44504) | top_logprobs 的 token-id identity | 同一 prompt、同一 model、`temperature=0`、不同 `logprobs` 参数（4/10/20）、per-token-id logprob 值对照、token-string collision 检测、patched/unpatched detokenizer 对照 | 同一 token id 的 logprob 值不随请求的 top-k 数量变化 | 按 detokenized string 比较 logprob；把 token-string collision 误判为 logprob 数值漂移 |
+
 ## 适用边界
 
 - exact identity 不能被 `allclose` 替代，尤其是 cache/layer/KV identity。
@@ -76,3 +80,4 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 - 继续追踪 `#43355` 是否出现 follow-up patch 或 maintainer resolution，尤其是 FP8 `qk_t` conversion。NHD layout gate 与 `key.size/value.size >= num_tokens` host guard 已在当前 patch 中出现，下一轮只需确认它们是否被 maintainer 接受或进入最终合并版本。
 - 追踪 `#43317` 是否合并；若未合并，decode/prefill consistency 的失败应先检查 token-id prefix 是否被文本 roundtrip 改写。
 - 后续 review ledger 时，对每条 `include` 检查是否已经写明保护对象和验证层级。
+- 追踪 `#44504` 是否合并；该 PR 改 `detokenizer_utils.py` 处理 token-string collision，使 `top_logprobs` 不再因多个 token id 映射到同一 string 而丢失条目或让 logprob 值看起来变化。未合并前，logprob equality 验证应优先按 token id 比较，而不是按 detokenized string 比较。

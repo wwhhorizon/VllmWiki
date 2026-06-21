@@ -109,4 +109,4 @@
 - 对 `#42120`，合并状态已闭环；下一轮只需继续补 wrong input dtype 的可维护测试，并确认 routed-expert LoRA weights 非零时的 adapter path 也稳定。
 - 对 `#42325/#42379` 继续记录 spec 讨论结果：如果未来 CUDA 侧改回 FP32，应同步更新 reference boundary，而不是只看某一侧实现。
 - 追踪 AWQ_Marlin 是否未来提供 deterministic fused path；追踪 Cutlass FP8 tuning 和 fused norm 优化是否保持 batch-invariant tests。
-- 追踪 `#42580` 是否提供 TRITON_ATTN FP8 `k_scale/v_scale` 的独立闭环；不要把它并入 `#42650`。
+- `#42580` 已于 2026-05-21 被作者关闭，原因是 concurrent fix [#42080](https://github.com/vllm-project/vllm/pull/42080) 已于 2026-05-19 合并，为 Triton attention backend 添加了 FP8 per-tensor Q scale 支持。因此 TRITON_ATTN FP8 `k_scale/v_scale` 边界已由 `#42080` 收口，不再单独追踪 `#42580`；`#42650` 的 metadata head-count 修复与 `#42080` 的 FP8 scale 修复仍是两条独立机制，不合并。

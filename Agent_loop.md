@@ -49,6 +49,7 @@
 - fix 是根因修复、workaround、support gate、test placement，还是尚未修复？
 - exact test 覆盖了什么？
 - 未覆盖的边界是什么？
+- 现有机制分类是否自然容纳该 claim，还是存在硬塞风险？
 - 该 claim 应该 `include`、`include_with_boundary`、`defer` 还是 `exclude`？
 
 ## Promotion 规则
@@ -83,6 +84,7 @@
 - 同一 PR 若同时包含稳定核心和未闭环子结论，必须拆开写；不能整条 promotion。
 - `open/unmerged + unresolved review risk` 只能进入 `next.md` 或机制页边界段，不能进入专题总览主表。
 - 每次 promotion 都要声明保护对象：`bit-identical / strict numeric tolerance / logprob ranking / token equality / KV identity / metadata identity / semantic only`。
+- 每次 promotion 都要做分类压力检查：如果现有机制不能自然解释 root cause、fix pattern 和 verification contract，先保持 `defer` 并在 ledger 写明分类缺口；不要为了维持目录稳定把 claim 硬塞进旧机制。新增机制分类的静态条件见 [WIKI_IMPLEMENTATION.md](WIKI_IMPLEMENTATION.md)。
 
 ## 输出
 

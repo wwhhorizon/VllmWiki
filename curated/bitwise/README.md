@@ -19,6 +19,10 @@
 
 本地复核队列 `curated/bitwise_review_queue.*` 属于可再生候选材料，不提交到 GitHub。稳定结论进入本页、机制页和必要的桥接页；待复核 claim 进入 [candidates/bitwise_ledger.csv](../../candidates/bitwise_ledger.csv)。
 
+## 辅助材料
+
+- [Bitwise / Deterministic 调研报告](research_report.md)：面向组会汇报的阶段性摘要，不新增机制结论。
+
 ## 稳定机制族
 
 本页只保留机制族级入口，避免把专题入口变成长表。具体 issue/PR、patch、验证和适用边界维护在各机制页；仍是 `include_with_boundary`、`defer` 或 `unresolved_review_risk` 的条目只进入 [next.md](next.md) 或机制页边界段。

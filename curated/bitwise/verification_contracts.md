@@ -51,11 +51,21 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | Token-prefix identity | decode/prefill consistency、logprob replay | `prompt_token_ids + decode_tokens[:i]` 级别相同，避免 `decode -> encode` roundtrip |
 | Semantic equivalence | 非确定 sampling 或高层 eval | 不能作为 bitwise 修复的唯一证据 |
 
+## 代表性 Verification Matrix
+
+| Source | 保护对象 | 最小验证矩阵 | 合格契约 | 不能被什么替代 |
+| --- | --- | --- | --- | --- |
+| [#29086](https://github.com/vllm-project/vllm/pull/29086) | draft/target layer identity | 同一 layer、同一输入、patched/unpatched 对照；exact compare 与近似 compare 对照 | `torch.equal` / exact identity | `allclose` 或“最终回答差不多” |
+| [#33123](https://github.com/vllm-project/vllm/issues/33123), [#40179](https://github.com/vllm-project/vllm/pull/40179) | prefix-cache token/logprob 等价 | no-prefix baseline、首次 cache miss、warmed cache hit、resumed request、block-aligned prompt、`fp32` 对照、`VLLM_BATCH_INVARIANT=1` 对照 | `temperature=0` token equality，必要时补 logprob ranking | 只测普通重复请求；只看 semantic output |
+| [#39589](https://github.com/vllm-project/vllm/issues/39589), [#39591](https://github.com/vllm-project/vllm/pull/39591) | block-table tail / concurrent prefill KV identity | variable-length concurrent prefill、tail-zero invariant、patched/unpatched 对照、move-row correctness 对照 | token equality + metadata tail invariant | 只测 append slice；把 reviewer 的性能建议当 correctness 阻塞 |
+| [#43355](https://github.com/vllm-project/vllm/pull/43355) | fused RoPE + KV write correctness | layout gate、slot uniqueness、row-size guard、dtype conversion type、patched/unpatched kernel compare | fused write bit-identical 或严格数值契约 + token/logprob 不翻转 | 只凭 open PR 的 bitwise test 名称；忽略 remaining review risk |
+| [#34878](https://github.com/vllm-project/vllm/pull/34878) | beam-search / ranking verification harness | ROCm-specific engine kwargs、prefix-cache on/off、skinny GEMM on/off、batch geometry 固定前后对照 | logprob ranking 稳定；beam choice 不被 `1e-5` 级 drift 翻转 | `semantic output same`；把 test-harness 固定外推成 production guarantee |
+
 ## 适用边界
 
 - exact identity 不能被 `allclose` 替代，尤其是 cache/layer/KV identity。
 - fused op 的验证要覆盖写入顺序和 slot mapping；duplicate slot 可能引入 last-write-wins nondeterminism。
-- `#43355` 的 review comments 应写成 boundary/risk，并且必须和当前 patch 对齐：HND/NHD layout gate 与 key/value size guard 已在 patch 中出现，但 FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，所以该 PR 仍不能直接写成最终修复结论。由于该 PR 在本轮证据中仍为 open/unmerged 且有 merge conflict 提醒，`include` 只能覆盖“验证契约样例”，不能覆盖“landed fix”。
+- `#43355` 的 review comments 应写成 boundary/risk，并且必须和当前 patch 对齐：HND/NHD layout gate 与 key/value size guard 已在 patch 中出现，但 FP8 `scaled_convert` 仍使用 `raw_kv_scalar_t`，所以该 PR 仍不能直接写成最终修复结论。该 PR 仍为 open/unmerged，且 2026-05-29 起多次出现 `needs-rebase`，作者在 2026-05-31、2026-06-12、2026-06-20 多次 force-push 清除后又复现，说明 patch 在持续演进但截至 2026-06-21 仍无 maintainer approval；`include` 只能覆盖“验证契约样例”，不能覆盖“landed fix”。
 - `#34874` 的 test 证明了 Mamba `"all"` mode 多 cache group 下的 metadata pointer 修复，但不证明所有 Mamba prefix-cache 或 MTP/spec decode 场景都稳定。
 - `#27660` 的 compile 测试证明特定模型/backend/flag 组合下 logprob batch-invariance 通过；不能把它扩展成所有 `torch.compile`、AOT compile 或所有 cuBLAS algorithm 都稳定。
 - `#43317` 仍 open/unmerged，因此只能作为“现有测试可能误报”的边界记录；不进入代表证据，也不能写成 decode/prefill consistency test 已经修好。
@@ -63,7 +73,6 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 
 ## 仍需补证
 
-- 将 `#29086/#43355/#40179/#39591` 抽成更明确的 verification matrix，并要求每条 curated claim 都声明自己的 equality contract。
 - 继续追踪 `#43355` 是否出现 follow-up patch 或 maintainer resolution，尤其是 FP8 `qk_t` conversion。NHD layout gate 与 `key.size/value.size >= num_tokens` host guard 已在当前 patch 中出现，下一轮只需确认它们是否被 maintainer 接受或进入最终合并版本。
 - 追踪 `#43317` 是否合并；若未合并，decode/prefill consistency 的失败应先检查 token-id prefix 是否被文本 roundtrip 改写。
 - 后续 review ledger 时，对每条 `include` 检查是否已经写明保护对象和验证层级。

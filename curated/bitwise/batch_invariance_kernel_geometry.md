@@ -42,6 +42,12 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 
 `#42699/#40896` 也显示出同样的收口方式：对 prefix-read/no-prefix-read、cold/warm prefix cache 这类 exact reproducibility 反馈，评论证据表明 `fp32` 或 `VLLM_BATCH_INVARIANT=1` 都能让输出重新收敛；其中 `#42699` 还把缓解直接指向已合并的 [#40193](https://github.com/vllm-project/vllm/pull/40193)。这说明在当前上游语义下，默认 prefix-cache path 的这类差异更适合先解释为 batch/query-length 改变 backend geometry 的数值路径边界，而不是先假设存在独立的 prefix-cache KV corruption。
 
+## Source-Adjacent 摘要
+
+- `#42670` 把一个常见误判拆开了：并不是每次 batch-invariant 失效都意味着“底层 kernel 没有 invariant 实现”，也可能是 support gate 把已有 invariant path 整条挡掉。当前证据里，PR 的 changed files 和测试计划都把问题收敛到 FlashInfer/CUTLASS FP4 MoE 在 `VLLM_BATCH_INVARIANT=1` 下仍被 base capability `False` 拦截，因此用户虽然开了 BI mode，实际却到不了目标路径。
+- 这也解释了为什么 `#42670` 更适合写成 support-gate workaround，而不是 checkpoint root-cause 修复：它解决的是“deterministic path 不可达”，不是“该 NVFP4 checkpoint 对低精度噪声为什么这么敏感”。即使 patch 合并，wiki 仍应保留 MiniMax-M2-family、B200、TP/concurrency 和 backend scope。
+- `#38670/#33688` 则给了两个已 landed 的对照样例：一个是 BI mode 下绕开 AWQ_Marlin 自动转换，让 Triton matmul override 真正接管；另一个是把 `TRITON_ATTN` decode 路径固定到 2D kernel。它们共同说明 support gate 的验证不能只停留在“backend 名称被列进 supported list”，而要证明最终 dispatch 的 kernel family 真的变得稳定可达。
+
 ## 修复方式
 
 1. 找出 batch composition 改变的 kernel config：`block_m`、`split_k`、tile、backend、graph capture、tokens-per-expert。
@@ -62,6 +68,14 @@ Batch invariance 被破坏时，根因常常不是 sampler，而是 kernel geome
 - 对 warmup 类修复，要分清首请求 latency 稳定、graph/JIT 编译完成和 token/logprob bitwise 稳定；三者不能互相替代。
 - 对 attention path gate，优先比较 logprobs 和 token，而不是只看最终文本；`#32561` 的 34/128 prompts failure 说明 logprob ranking 可以在文本变化前暴露问题。
 - 对 backend enablement，测试必须覆盖 before/after failure、目标 backend 名称、硬件、模型和是否 `enforce_eager`；若 CUDA graph 未覆盖，要明说。
+
+### Support-Gate 最小验证矩阵
+
+| Source | 保护对象 | 最小验证矩阵 | 合格契约 | 不能被什么替代 |
+| --- | --- | --- | --- | --- |
+| [#42670](https://github.com/vllm-project/vllm/pull/42670) | `VLLM_BATCH_INVARIANT=1` 下 FlashInfer/CUTLASS FP4 MoE 的可达性与输出稳定性 | MiniMax-M2-family、B200、TP=2、concurrency=2、patched/unpatched 对照、`supports_batch_invariance()` 或 selector path 命中、输出 hash 或 token equality、CI 不覆盖原因 | BI mode 真的命中目标 backend/support gate，且已知复现不再分叉 | 只看 PR body；只有 capability flag 改动；没有模型级 before/after 复现 |
+| [#38670](https://github.com/vllm-project/vllm/pull/38670) | AWQ 模型在 BI mode 下不再被自动转换到 Marlin fast path | AWQ model、BI on/off、patched/unpatched quantization override、最终 kernel path 对照、token/logprob equality | BI mode 下最终执行路径受 deterministic matmul override 控制 | 只证明 `override_quantization_method()` 返回变化；不检查最终 kernel path |
+| [#33688](https://github.com/vllm-project/vllm/pull/33688) | `TRITON_ATTN` decode path 的 2D invariant kernel family | target hardware、decode batch-size matrix、patched/unpatched backend path、logprob before/after failure | BI mode 下 decode 不再落到 batch-sensitive 3D kernel | 只看 backend 名称；只看最终文本不看 logprob |
 
 ## 适用边界
 

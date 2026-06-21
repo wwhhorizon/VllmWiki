@@ -47,7 +47,14 @@
 
 从当前 main 代码路径再往前看，这条 family 的默认加载链其实已经更接近“机制闭环已成立”而不是“还差一个新修法”：`BaseModelLoader.load_model()` 仍然是在 CUDA 参数上执行 `self.load_weights(...)`，`runai_safetensors_weights_iterator` 已在 `yield` 前对每个 tensor 做 `clone()`，而 `AutoWeightsLoader._load_param()` 会立刻把该 tensor 交给 `default_weight_loader` 的 `param.data.copy_()` 消费。也就是说，原始 `#38991` 里“shared buffer view 被 generator 前移复用，旧 async copy 仍指向同一 backing storage”这条 alias 链，在默认路径上已经被 iterator-side `clone()` 机械切断了。
 
-随后 closed issue `#44430` 与 merged PR `#44645` 又把这条 family 继续往前推了一步：`clone()` 不是多余修法，而是 correctness 所必需；真正需要后续优化的是那些会一次性物化整个 iterator 的模型 loader，它们必须改成 streaming，才能承接 copy-returning loader 的内存代价。这里也要把范围说准：`#44645` 直接 landed 的是 Llama4 weight-loading 路径，不是“所有模型 loader 已经统一 streaming 化”。它提供的是一个已合并的 family-level 收口样例，证明 memory/perf 问题应由 eager materialization 的模型路径改成 streaming 来吸收，而不是回退 `clone()`。`#44430` 的 issue comments 也把这个分工说得很清楚，issue 提交者还在 2026-06-15 明确确认 `#44645` 已修复 host-OOM。换句话说，这条线现在已经自然分成两层：iterator-side `clone()` 是 correctness closure，streaming loader 是 memory/perf closure。`#38991` 之所以仍不能 promotion，不再是因为根因方向模糊，也不太像是因为还缺另一条 sync/ownership 修法，而是因为它本体仍缺 direct linked closure；截至 2026-06-20，仓库中仍查不到任何直接引用 `#38991` 的 PR，且 exact unified-memory + `BaseModelLoader.load_model()` async copy 路径还没有被专门 regression 化。
+随后 closed issue `#44430` 与 merged PR `#44645` 又把这条 family 继续往前推了一步：`clone()` 不是多余修法，而是 correctness 所必需；真正需要后续优化的是那些会一次性物化整个 iterator 的模型 loader，它们必须改成 streaming，才能承接 copy-returning loader 的内存代价。这里也要把范围说准：`#44645` 直接 landed 的是 Llama4 weight-loading 路径，不是“所有模型 loader 已经统一 streaming 化”。它提供的是一个已合并的 family-level 收口样例，证明 memory/perf 问题应由 eager materialization 的模型路径改成 streaming 来吸收，而不是回退 `clone()`。`#44430` 的 issue comments 也把这个分工说得很清楚，issue 提交者还在 2026-06-15 明确确认 `#44645` 已修复 host-OOM。换句话说，这条线现在已经自然分成两层：iterator-side `clone()` 是 correctness closure，streaming loader 是 memory/perf closure。`#38991` 之所以仍不能 promotion，不再是因为根因方向模糊，也不太像是因为还缺另一条 sync/ownership 修法，而是因为它本体仍缺 direct linked closure；截至 2026-06-21，仓库中仍查不到任何直接引用 `#38991` 的 PR，也没有 2026-06-20 之后的新 maintainer/commentary 进展，且 exact unified-memory + `BaseModelLoader.load_model()` async copy 路径还没有被专门 regression 化。
+
+## Source-Adjacent 摘要
+
+- `#33179` 是反例锚点：它把 MI355/gfx950 的 FP8 format 判断成 `float8_e4m3fnuz`，但 maintainer 评论直接给出硬件事实——Fnuz 只支持 gfx942，gfx950 用 CUDA-like FP8。因此这条 closed/unmerged PR 只能作为“hardware guard 必须先被 maintainer/硬件事实校验”的负向证据，不能进入 dtype 修复链。
+- `#42120` 的 patch 落点很具体：它同时改了 `no_lora_flag_cpu` 早退和 LoRA shrink path 的 `original_hidden_states` stash，让 base GEMM 吃量化 activation、LoRA kernel 吃原始 BF16/FP16 activation；review 要求的“stash 清理”和“stash 在 `_prepare()` 前保存”都已进最终 patch。这说明 LoRA + FP8 MoE 的稳定性是一个“base path / adapter path / token mapping 生命周期同时闭环”的机制，不是单点 dtype 判断。
+- `#42379` 的 reference boundary 更值得写准：patch 在 6 个 kernel site 恢复 `static_cast<scalar_t>(x * s_variance) * weight`，把 fused quant path 与 non-fused composite path 对齐；它的验证是 core layernorm 865 项 + IR layernorm 1442 项 + TinyLlama/H100 `lm_eval` 无回归。但 `#42325` 后续评论明确质疑“Python IR 不应默认充当 CUDA spec”，所以这条只能写成“已合并的 native-dtype 行为及其验证”，不能写成“Python IR = 所有 CUDA kernel 规范”。
+- `#38991/#43163/#43464` 这条 family 的 source-adjacent 事实很硬：`#43464` 的回归测试不是泛泛断言数值正确，而是显式把 `RUNAI_STREAMER_MEMORY_LIMIT=0` 压到会复用内部 buffer 的状态，再验证不同 yielded tensor 不再共享 data pointer；上游接受的修法是在 `runai_safetensors_weights_iterator` 边界 `clone()` yielded tensor。`#44645` 又把 `clone()` 的 host-RAM 回归收口成 Llama4 loader 的 streaming 改造，而不是回退 `clone()`。因此这条线已分成两层：iterator-side `clone()` = correctness closure，streaming loader = memory/perf closure。
 
 ## 修复方式
 
@@ -74,6 +81,15 @@
 - Norm/fusion 层：同时比较 regular RMSNorm、fused add RMSNorm、static FP8 quant RMSNorm 与 non-fused composite path；如果选择 Python/IR reference，必须记录 maintainer 是否接受该 reference boundary。
 - Quant selector 层：比较原 quant method、BI fallback method、硬件能力、dtype 和性能代价；若保留 direct FP8/Cutlass path，必须覆盖多 batch size/M 维。
 - FP8 KV metadata 层：覆盖非均匀 per-layer head 模型、长 prompt、CUDA graphs/compile、FlashInfer native path、TRITON_ATTN path；并将 scale bug 与 metadata bug拆开验证。
+
+### Quant / Dtype 最小验证矩阵
+
+| Source | 保护对象 | 最小验证矩阵 | 合格契约 | 不能被什么替代 |
+| --- | --- | --- | --- | --- |
+| [#42120](https://github.com/vllm-project/vllm/pull/42120) | FP8 W8A8 MoE + LoRA 的 base/adapter activation 生命周期 | active LoRA、无 active LoRA、adapter batch 后 base batch、DP/EP all2all、`original_hidden_states` stash 前后对照、wrong input dtype 单测 | base path 与 adapter path byte-identical；无 stale LoRA mapping 写坏 base batch | 只测 early exit；只测 happy-path adapter；把第三方 Blackwell 验证外推到 routed-expert LoRA |
+| [#42325](https://github.com/vllm-project/vllm/issues/42325), [#42379](https://github.com/vllm-project/vllm/pull/42379) | RMSNorm / fused quant RMSNorm 的 multiply dtype 与 reference boundary | regular RMSNorm、fused add RMSNorm、static FP8 quant RMSNorm、non-fused composite path 对照、BF16 weight 场景、TinyLlama/H100 `lm_eval` | native-dtype multiply behavior 与 fused path 对齐；无 `lm_eval` 回归 | 只看 Python IR；只测单一 norm site；把 IR 默认当 CUDA spec |
+| [#38991](https://github.com/vllm-project/vllm/issues/38991), [#43163](https://github.com/vllm-project/vllm/issues/43163), [#43464](https://github.com/vllm-project/vllm/pull/43464) | weight loader 的 tensor ownership / buffer lifetime | shared-buffer view source、`param.data.copy_()` async、iterator-side `clone()`、`RUNAI_STREAMER_MEMORY_LIMIT=0` 强制复用、data pointer 不共享断言 | yielded tensor 不共享 backing storage；clone 后数值正确 | 只测数值；不强制 buffer 复用；把 Llama4 streaming 样例外推成所有 loader |
+| [#40408](https://github.com/vllm-project/vllm/pull/40408) | Cutlass FP8 scaled-mm 的 batch-invariant fixed-config dispatch | sm89/sm90/sm100/sm120、多 weight shape、`test_cutlass_fp8_batch_invariant_fixed_config`、CUTLASS config independent of `M` | BI mode 下 direct FP8 path 输出稳定，不随 `M` 改变 config | 只测单一 shape；不验证 config 是否依赖 `M`；把当前 tuning 外推到未来 |
 
 ## 适用边界
 

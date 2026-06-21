@@ -34,9 +34,9 @@
 
 ## 主线核心缺口
 
-- runtime same-name LoRA reload 已接近内容派生的本地 prefix-cache version identity 修法闭环；当前缺口更准确地说是 merge 以及 source/deployment 边界被上游接受：[#42125](https://github.com/vllm-project/vllm/issues/42125)、[#45981](https://github.com/vllm-project/vllm/pull/45981)。
-- external KV connector 仍缺跨仓统一的 adapter identity/version schema；当前不只是“还没合并”，而是 schema 应由哪一层 key 充当 single source of truth 仍在收敛：[#44250](https://github.com/vllm-project/vllm/issues/44250)、[#45549](https://github.com/vllm-project/vllm/pull/45549)、[LMCache #2962](https://github.com/LMCache/LMCache/pull/2962)。
-- loading-lifetime 主线的 family closure 已基本收敛为“iterator-side `clone()` 保 correctness、eager loader 改 streaming 收 memory/perf”；从当前 main 代码路径看，原始 shared-buffer alias 链在默认加载路径上已被 `clone()` 机械切断，但 `#38991` 本体仍缺 direct issue-level closure 与 exact unified-memory regression coverage：[#38991](https://github.com/vllm-project/vllm/issues/38991)。
+- runtime same-name LoRA reload 已接近内容派生的本地 prefix-cache version identity 修法闭环；截至 2026-06-21，[#45981](https://github.com/vllm-project/vllm/pull/45981) 仍 open，reviewers 仍处于 awaiting requested review，尚无 maintainer/reviewer 的实质反馈，因此当前缺口更准确地说是 merge 与 source/deployment 边界被上游接受：[#42125](https://github.com/vllm-project/vllm/issues/42125)、[#45981](https://github.com/vllm-project/vllm/pull/45981)。
+- external KV connector 仍缺跨仓统一的 adapter identity/version schema；截至 2026-06-21，[#45549](https://github.com/vllm-project/vllm/pull/45549) 与 [LMCache #2962](https://github.com/LMCache/LMCache/pull/2962) 都仍 open，且没有新的 acceptance signal，因此当前不只是“还没合并”，而是 schema 应由哪一层 key 充当 single source of truth 仍在收敛：[#44250](https://github.com/vllm-project/vllm/issues/44250)、[#45549](https://github.com/vllm-project/vllm/pull/45549)、[LMCache #2962](https://github.com/LMCache/LMCache/pull/2962)。
+- loading-lifetime 主线的 family closure 已基本收敛为“iterator-side `clone()` 保 correctness、eager loader 改 streaming 收 memory/perf”；从当前 main 代码路径看，原始 shared-buffer alias 链在默认加载路径上已被 `clone()` 机械切断，但截至 2026-06-21，[#38991](https://github.com/vllm-project/vllm/issues/38991) 本体仍 open/0 comments，且没有 direct issue-level closure 或 exact unified-memory regression coverage。
 
 ## 辅助边界
 

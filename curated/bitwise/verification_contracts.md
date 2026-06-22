@@ -26,6 +26,8 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 | [#27660](https://github.com/vllm-project/vllm/pull/27660) | DeepSeek V3.1 + FlashAttention MLA 的 `test_logprobs_bitwise_batch_invariance_bs1_vs_bsN` 通过；PR body 还用多个 `max_model_len` 和 batch size 说明 Inductor reduction kernel thread layout 固定。 | compile path 的验证要同时记录模型、backend、batch/M 维矩阵、PyTorch/cuBLAS flags 和是否启用 AOT compile。 |
 
 | [#44319](https://github.com/vllm-project/vllm/issues/44319), [#44504](https://github.com/vllm-project/vllm/pull/44504) | 用户报告请求不同数量的 top-k logprobs 时，同一 token 的 logprob 值会变化，甚至翻转 argmax。评论确认根因不是 sampling/count bug，而是 token-string collision：多个不同 token id 被渲染成同一个 string，导致 `top_logprobs` 返回的条目数少于请求数，且某个 token 的 logprob 看起来“变了”。纯 vLLM v0.22.0 + offline LLM API + `temperature=0` 下 per-token logprob 值实际稳定；行为变化可追溯到特定 PR。修复 PR `#44504` 改 `detokenizer_utils.py` 和 `test_detokenize.py`，但仍 open/unmerged。 | token id 到 string 的映射不是一对一的；多个 token id 可碰撞到同一 string，这会让 `top_logprobs` 的值看起来不稳定。验证 logprob equality 时必须按 token id 比较，而不是按 detokenized string 比较。 |
+| [#42779](https://github.com/vllm-project/vllm/pull/42779) | open PR（5 comments、0 review comments、2 changed files）在执行前把 padded model inputs（`input_ids` 和 `positions` 的 padding 区域）清零，并用 `torch.equal` 断言 padding 区域确实为零。patch 测试显示 `input_ids[:num_input_tokens]` 保留真实值，而 `input_ids[num_input_tokens:]` 必须全零；`positions` 同理。 | padded inputs 的 stale data 是 deterministic 输出的潜在污染源。如果 padding 区域保留了上一 step 或上一请求的数据，CUDA graph replay 或 padded GEMM 可能读到非零 stale 值，产生 batch-composition-dependent 数值漂移。清零是防护手段，`torch.equal` 断言是验证契约。 |
+
 
 ## 根因机制
 
@@ -81,3 +83,4 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 - 追踪 `#43317` 是否合并；若未合并，decode/prefill consistency 的失败应先检查 token-id prefix 是否被文本 roundtrip 改写。
 - 后续 review ledger 时，对每条 `include` 检查是否已经写明保护对象和验证层级。
 - 追踪 `#44504` 是否合并；该 PR 改 `detokenizer_utils.py` 处理 token-string collision，使 `top_logprobs` 不再因多个 token id 映射到同一 string 而丢失条目或让 logprob 值看起来变化。未合并前，logprob equality 验证应优先按 token id 比较，而不是按 detokenized string 比较。
+- 追踪 `#42779` 是否合并；该 PR 在执行前清零 padded inputs 并用 `torch.equal` 断言。若合并，可作为“padded inputs 必须清零”这一 verification contract 的 landed 样例。

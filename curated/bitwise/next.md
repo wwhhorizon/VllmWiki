@@ -3,6 +3,8 @@
 状态：active queue。  
 作用：记录下一轮要补证的 bitwise/deterministic 工作项。本文只放队列和缺口，不承载最终机制结论；稳定结论应下沉到 [本专题机制页](README.md)。
 
+维护规则见 [维护规则](../../docs/maintenance.md)；术语定义见 [Glossary](../../docs/glossary.md)。
+
 ## 本页使用方式
 
 - 本页只保留当前优先追踪的未闭环项：`defer`、`include_with_boundary`、`unresolved_review_risk` 和 open workaround。

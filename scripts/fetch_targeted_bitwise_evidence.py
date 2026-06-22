@@ -195,15 +195,26 @@ def collect_seed_numbers(
 
     if not queue_only:
         for row in read_csv(WIKI / "candidates" / "bitwise_ledger.csv"):
-            number = row.get("source_number", "")
+            note_text = ""
+            note = row.get("note", "")
+            if note:
+                note_path = WIKI / note
+                if note_path.exists():
+                    note_text = read_text(note_path)
+            numeric_id = row.get("id", "").replace("bitwise-", "")
+            source_type_match = re.search(r"^- source type:\s*(.+)$", note_text, re.MULTILINE)
+            source_type = source_type_match.group(1).strip() if source_type_match else ""
+            upstream_match = re.search(r"^- upstream id:\s*(\d+)$", note_text, re.MULTILINE)
+            number = upstream_match.group(1) if upstream_match else numeric_id
             if number.isdigit():
-                if "pr" in row.get("source_type", "") and "issue_pr_pair" not in row.get("source_type", ""):
+                if "pr" in source_type and "issue_pr_pair" not in source_type:
                     pr_numbers.add(int(number))
                     seed_sources["ledger_prs"] += 1
                 else:
                     issue_numbers.add(int(number))
                     seed_sources["ledger_issues"] += 1
             pr_numbers.update(parse_pr_refs(" ".join(row.values())))
+            pr_numbers.update(parse_pr_refs(note_text))
 
         page_text = "\n".join(read_text(path) for path in (WIKI / "curated" / "bitwise").glob("*.md"))
         page_issues, page_prs = parse_github_links(page_text)

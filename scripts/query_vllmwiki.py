@@ -30,6 +30,16 @@ def row_text(row: dict[str, str]) -> str:
     return " ".join(str(value) for value in row.values())
 
 
+def read_note(row: dict[str, str]) -> str:
+    note = row.get("note", "")
+    if not note:
+        return ""
+    path = ROOT / note
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
 def search_rows(args: argparse.Namespace) -> list[tuple[str, str, str, str]]:
     terms = args.terms
     results: list[tuple[str, str, str, str]] = []
@@ -61,12 +71,14 @@ def search_rows(args: argparse.Namespace) -> list[tuple[str, str, str, str]]:
         for row in read_csv(ROOT / "candidates" / "bitwise_ledger.csv"):
             if args.mechanism and args.mechanism != row.get("mechanism", ""):
                 continue
-            if args.decision and args.decision != row.get("decision", ""):
+            if args.decision and args.decision != row.get("status", ""):
                 continue
-            if terms and not contains(row_text(row), terms):
+            note_text = read_note(row)
+            if terms and not contains(row_text(row) + " " + note_text, terms):
                 continue
-            detail = f"{row.get('mechanism','')} decision={row.get('decision','')} next={row.get('next_action','')}"
-            results.append(("ledger", row.get("id", ""), row.get("promotion_reason", ""), detail))
+            detail = f"{row.get('mechanism','')} status={row.get('status','')} next={row.get('next_action','')} note={row.get('note','')}"
+            title = note_text.splitlines()[0].lstrip("# ").strip() if note_text else row.get("id", "")
+            results.append(("ledger", row.get("id", ""), title, detail))
 
     if args.kind in {"all", "page"}:
         for path in sorted(ROOT.rglob("*.md")):
@@ -90,7 +102,11 @@ def main() -> int:
     parser.add_argument("--pattern", help="Filter issue/PR rows by top pattern id.")
     parser.add_argument("--domain", help="Filter issue/PR rows by work_area fragment.")
     parser.add_argument("--mechanism", help="Filter candidate ledger by mechanism.")
-    parser.add_argument("--decision", choices=["include", "defer", "exclude"], help="Filter candidate ledger.")
+    parser.add_argument(
+        "--decision",
+        choices=["stable", "include_with_boundary", "defer_blocked", "unresolved_review_risk"],
+        help="Filter candidate ledger by status.",
+    )
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--compact", action="store_true")
     args = parser.parse_args()

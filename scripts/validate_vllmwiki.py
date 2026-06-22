@@ -99,10 +99,7 @@ def check_bitwise_ledger(errors: list[str], warnings: list[str]) -> None:
         return
     rows = read_csv(path)
     required = {
-        "id", "source_type", "source_number", "mechanism", "decision", "source_read",
-        "pr_read", "comments_status", "risk_status", "priority", "review_depth",
-        "evidence_strength", "blocking_reason", "target_evidence",
-        "last_reviewed_at", "promotion_reason", "next_action",
+        "id", "status", "priority", "mechanism", "next_action", "note",
     }
     if rows:
         missing = required.difference(rows[0])
@@ -111,31 +108,34 @@ def check_bitwise_ledger(errors: list[str], warnings: list[str]) -> None:
     malformed = [row.get("id", "<missing id>") for row in rows if row.get(None)]
     if malformed:
         errors.append(f"bitwise ledger has malformed CSV rows with extra fields: {malformed}")
-    decisions = {row.get("decision", "") for row in rows}
-    if not {"include", "defer"}.issubset(decisions):
-        warnings.append("bitwise ledger should contain both include and defer decisions")
-    statuses = {row.get("comments_status", "") for row in rows}
-    if "fetched" not in statuses and not any(row.get("comments_status") == "missing" for row in rows):
-        warnings.append("bitwise ledger should expose either fetched comments or missing comment-body risk")
-    if not any(row.get("decision") == "defer" for row in rows):
-        warnings.append("bitwise ledger should keep unresolved evidence as defer instead of over-promoting")
-    allowed_risk = {"stable", "include_with_boundary", "defer_blocked", "unresolved_review_risk"}
-    bad_risk = sorted({row.get("risk_status", "") for row in rows} - allowed_risk)
-    if bad_risk:
-        errors.append(f"bitwise ledger has unknown risk_status values: {bad_risk}")
+    allowed_status = {"stable", "include_with_boundary", "defer_blocked", "unresolved_review_risk"}
+    bad_status = sorted({row.get("status", "") for row in rows} - allowed_status)
+    if bad_status:
+        errors.append(f"bitwise ledger has unknown status values: {bad_status}")
     allowed_priority = {"high", "medium", "low"}
     bad_priority = sorted({row.get("priority", "") for row in rows} - allowed_priority)
     if bad_priority:
         errors.append(f"bitwise ledger has unknown priority values: {bad_priority}")
-    allowed_depth = {"curated", "followup_patch", "linked_fix_search", "umbrella_split"}
-    bad_depth = sorted({row.get("review_depth", "") for row in rows} - allowed_depth)
-    if bad_depth:
-        errors.append(f"bitwise ledger has unknown review_depth values: {bad_depth}")
+    allowed_actions = {
+        "monitor_regression",
+        "track_boundary_closure",
+        "track_review_resolution",
+        "collect_missing_evidence",
+        "review_note",
+    }
+    bad_actions = sorted({row.get("next_action", "") for row in rows} - allowed_actions)
+    if bad_actions:
+        errors.append(f"bitwise ledger has unknown next_action values: {bad_actions}")
     for row in rows:
-        if row.get("decision") == "defer" and row.get("risk_status") != "defer_blocked":
-            warnings.append(f"defer row should normally use defer_blocked risk_status: {row.get('id')}")
-        if row.get("risk_status") == "stable" and row.get("decision") != "include":
-            warnings.append(f"stable risk_status should normally be include: {row.get('id')}")
+        note = row.get("note", "")
+        if not note:
+            errors.append(f"bitwise ledger row missing note path: {row.get('id')}")
+            continue
+        note_path = ROOT / note
+        if not note_path.exists():
+            errors.append(f"bitwise ledger note does not exist: {row.get('id')} -> {note}")
+        if max(len(value) for value in row.values()) > 120:
+            warnings.append(f"bitwise ledger row has unexpectedly long machine field: {row.get('id')}")
 
 
 def check_bitwise_evidence(errors: list[str], warnings: list[str]) -> None:

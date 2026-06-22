@@ -29,7 +29,13 @@ def find_page(identifier: str, source: str | None) -> tuple[str, str] | None:
 
     if source in {None, "ledger"}:
         for row in read_csv(ROOT / "candidates" / "bitwise_ledger.csv"):
-            if row.get("id") == identifier or row.get("source_number") == identifier:
+            note = row.get("note", "")
+            note_path = ROOT / note if note else None
+            note_text = note_path.read_text(encoding="utf-8", errors="replace") if note_path and note_path.exists() else ""
+            numeric_id = row.get("id", "").replace("bitwise-", "")
+            if row.get("id") == identifier or numeric_id == identifier or f"upstream id: {identifier}" in note_text:
+                if note_text:
+                    return (note, note_text)
                 lines = [f"# Candidate {row.get('id','')}", ""]
                 for key, value in row.items():
                     lines.append(f"- `{key}`: {value}")

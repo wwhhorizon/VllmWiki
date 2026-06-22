@@ -1,4 +1,4 @@
-# Bitwise 确定性与数值等价
+﻿# Bitwise 确定性与数值等价
 
 状态：curated topic map。
 范围：bitwise invariance、deterministic output、batch-size invariance、prefix-cache equivalence，以及可能翻转 greedy decoding 的 numerical drift。
@@ -30,9 +30,7 @@
 | dispatch / reduction | autotune candidate、split-K、atomic reduction、cuBLAS/workspace 和 backend selector 都必须进入 deterministic contract。 | [Deterministic Dispatch 与 Reduction Control](deterministic_dispatch_reduction.md) |
 | quant / dtype semantics | dtype guard、scale layout、fusion math dtype、LoRA activation 和 loading lifetime 都是数值语义的一部分。 | [量化与 Dtype 数值语义](quant_dtype_numerical_semantics.md) |
 
-## 当前主线缺口
-
-完整未闭环队列维护在 [next.md](next.md)。当前主线集中在三类缺口：runtime LoRA / prefix-cache identity 的 upstream 接受度、external KV / LoRA identity 的跨仓 schema single source of truth、以及 loading-lifetime family 中 `#38991` 本体的 direct closure / dedicated regression。
+完整未闭环队列维护在 [next.md](next.md)。
 
 ## 维护边界
 

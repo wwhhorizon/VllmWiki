@@ -1,22 +1,9 @@
 # Bitwise 工作的验证契约 Evidence Appendix
 
 状态：curated public evidence summary。
-
 父页：[../verification_contracts.md](../verification_contracts.md)。
 
-本文保存公开可追溯的长证据摘要、case 表格、验证矩阵和补证记录。它来自机制页重构前的详细结论层文本，不包含本地 raw evidence 全文。
-
-## 问题定义
-
-bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view equality、`allclose`、strict numeric tolerance、logprob/token equality 和 semantic answer match 是不同契约，不能混用。
-
-## 典型触发条件
-
-- 性能优化用 `allclose` 掩盖 cache/layer identity 问题。
-- fused kernel 写入 KV cache 后没有 bit-identical test。
-- cache miss/hit、concurrent prefill、batch-invariant mode 只测单一路径。
-- semantic answer match 被误用为 bitwise/deterministic 证据。
-- decode/prefill 一致性测试用文本 roundtrip 重建 prefix，导致 token ids 改变。
+本文只保存机制页之外的长证据摘要、case 表格、验证矩阵、详细边界和补证记录；通用问题定义、机制解释和修复模式以父页为准。
 
 ## 代表证据
 
@@ -29,33 +16,6 @@ bitwise/deterministic 修复必须写清验证标准。`torch.equal`、bit-view 
 
 | [#44319](https://github.com/vllm-project/vllm/issues/44319), [#44504](https://github.com/vllm-project/vllm/pull/44504) | 用户报告请求不同数量的 top-k logprobs 时，同一 token 的 logprob 值会变化，甚至翻转 argmax。评论确认根因不是 sampling/count bug，而是 token-string collision：多个不同 token id 被渲染成同一个 string，导致 `top_logprobs` 返回的条目数少于请求数，且某个 token 的 logprob 看起来“变了”。纯 vLLM v0.22.0 + offline LLM API + `temperature=0` 下 per-token logprob 值实际稳定；行为变化可追溯到特定 PR。修复 PR `#44504` 改 `detokenizer_utils.py` 和 `test_detokenize.py`，但仍 open/unmerged。 | token id 到 string 的映射不是一对一的；多个 token id 可碰撞到同一 string，这会让 `top_logprobs` 的值看起来不稳定。验证 logprob equality 时必须按 token id 比较，而不是按 detokenized string 比较。 |
 | [#42779](https://github.com/vllm-project/vllm/pull/42779) | open PR（5 comments、0 review comments、2 changed files）在执行前把 padded model inputs（`input_ids` 和 `positions` 的 padding 区域）清零，并用 `torch.equal` 断言 padding 区域确实为零。patch 测试显示 `input_ids[:num_input_tokens]` 保留真实值，而 `input_ids[num_input_tokens:]` 必须全零；`positions` 同理。 | padded inputs 的 stale data 是 deterministic 输出的潜在污染源。如果 padding 区域保留了上一 step 或上一请求的数据，CUDA graph replay 或 padded GEMM 可能读到非零 stale 值，产生 batch-composition-dependent 数值漂移。清零是防护手段，`torch.equal` 断言是验证契约。 |
-
-
-## 根因机制
-
-验证契约错误会让 correctness bug 伪装成“可接受数值误差”。对于 cache identity、KV write、layer identity、metadata layout 这类语义对象，近似相等通常不够；对于 backend math drift，strict tolerance 可以作为中间证据，但还必须证明不会翻转 token 或破坏 logprob ranking。
-
-## 修复方式
-
-1. 先定义保护对象：tensor、KV block、metadata、logits、token、answer。
-2. 再选择 equality contract：bit-identical、strict tolerance、token equality 或 semantic equivalence。
-3. cache 类问题覆盖 cache miss、cache hit、cache bypass、offload/restore。
-4. batch 类问题覆盖单请求、混 batch、并发 prefill/decode、first request 与 warmup 后。
-5. backend 类问题记录硬件、dtype、backend、graph/capture 状态、kernel config。
-6. fused KV write 类问题额外检查 dtype conversion 类型、KV cache layout、slot uniqueness、key/value tensor row 数 guard；review comment 已经被 patch 覆盖的风险要降级为边界，仍留在 patch 中的问题才阻塞 promotion。
-7. metadata cache 类问题要验证 tensor 指针/地址身份，而不是只比较值；CUDA graph replay 读的是 capture 时的 persistent buffer 地址。
-8. decode/prefill consistency 测试必须使用同一 token-id prefix；不能用 detokenized text 再交给 tokenizer 重编码来代表同一前缀。
-
-## 验证契约
-
-| 层级 | 适用场景 | 合格证据 |
-| --- | --- | --- |
-| Bit-identical | KV cache、slot mapping、fused write、exact deterministic path | `torch.equal`、bit-view equality、`rtol=0, atol=0` |
-| Strict numeric tolerance | backend math 允许微小误差但不得翻转 token | 显式 tolerance，并说明 dtype/backend/hardware |
-| Logprob/token equality | decoding 可见行为必须稳定 | `temperature=0` 输出 token 相同，必要时检查 logprob ranking |
-| Metadata identity | CUDA graph persistent buffer、block table、slot mapping | storage/data pointer 指向当前生命周期对象，且逻辑值正确 |
-| Token-prefix identity | decode/prefill consistency、logprob replay | `prompt_token_ids + decode_tokens[:i]` 级别相同，避免 `decode -> encode` roundtrip |
-| Semantic equivalence | 非确定 sampling 或高层 eval | 不能作为 bitwise 修复的唯一证据 |
 
 ## 代表性 Verification Matrix
 

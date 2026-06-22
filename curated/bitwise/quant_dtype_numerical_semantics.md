@@ -14,6 +14,8 @@
 
 LoRA + FP8 MoE 展示的是 activation identity：base GEMM 需要量化 activation，LoRA delta 需要原始精度 activation。RMSNorm 展示的是 reference boundary：native dtype、FP32 和 composite path 不能被混写。weight loading lifetime 展示的是 tensor ownership：iterator 复用 backing storage 时，异步 copy 可能读到被改写的数据。
 
+<!-- 稳定证据区禁止出现 open/defer/include_with_boundary；此类对象仅可进入"边界与反例"段或 next.md -->
+
 ## 稳定证据
 
 - upstream id: [#33179](https://github.com/vllm-project/vllm/pull/33179)

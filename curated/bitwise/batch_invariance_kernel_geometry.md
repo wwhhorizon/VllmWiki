@@ -1,4 +1,4 @@
-# Batch Invariance 与 Kernel Geometry
+﻿# Batch Invariance 与 Kernel Geometry
 
 状态：curated。
 父页：[Bitwise 确定性与数值等价](README.md)。
@@ -13,6 +13,8 @@ Batch invariance 要求同一请求不因同 batch 的其他请求而改变 toke
 batch composition 改变每个 kernel 看到的 shape、expert token 分布、graph/capture 状态或 reduction order。低精度 MoE、FP4/FP8、cascade attention、FlashInfer CTA tile 和 quantization auto-conversion 都可能把这种差异放大。
 
 因此 batch-invariant 修复不只是“加一个全局开关”。每个 backend 或 quantization path 都要证明最终 dispatch 的 kernel family、split 参数、tile 或 support gate 被固定。
+
+<!-- 稳定证据区禁止出现 open/defer/include_with_boundary；此类对象仅可进入"边界与反例"段或 next.md -->
 
 ## 稳定证据
 
@@ -56,7 +58,7 @@ batch composition 改变每个 kernel 看到的 shape、expert token 分布、gr
 - `#27433` 是 umbrella，不直接 promotion。
 - `#42670` 是 open support-gate workaround：它说明 deterministic path 可能不可达，但不能写成 checkpoint root-cause 修复或 landed ability。
 - `#33537` 目前只有 warmup/latency 边界，缺 token/logprob divergence before/after。
-- `#42513/#42518` 当前是 eager-vs-BI 契约边界：maintainer 将 exact reproducibility 收口到 BI mode，没有接受独立 selective fix。
+- `#42513/#42518` 当前是 eager-vs-BI 契约边界：eager 模式下 MTP/spec decode 与 non-MTP 的 attention GEMM 数值路径可能通过 verification batch geometry 分叉，并经 KV 放大到 token 分叉；当前未发现 linked fix 或 selective patch，属于 batch-invariant 契约边界。
 - batch invariance 与 dispatch/reduction 交叉；当根因是 split-K、atomic 或 autotune，应链接到 [Deterministic Dispatch 与 Reduction Control](deterministic_dispatch_reduction.md)。
 
 ## Evidence appendix

@@ -17,13 +17,9 @@ if hasattr(sys.stdout, "reconfigure"):
 
 REQUIRED = [
     "README.md",
-    "WIKI_IMPLEMENTATION.md",
-    "Agent_loop.md",
-    "audit/manifest.md",
-    "data/schemas.yaml",
-    "data/tags.yaml",
-    "data/aliases.yaml",
-    "data/version-claims.yaml",
+    "docs/agent_loop.md",
+    "docs/maintenance.md",
+    "docs/glossary.md",
     "candidates/bitwise_ledger.csv",
     "curated/bitwise/README.md",
     "curated/bitwise/next.md",
@@ -47,8 +43,8 @@ def check_links(errors: list[str], full: bool = False) -> None:
     else:
         files = [
             ROOT / "README.md",
-            ROOT / "WIKI_IMPLEMENTATION.md",
-            ROOT / "Agent_loop.md",
+            ROOT / "docs" / "agent_loop.md",
+            ROOT / "docs" / "maintenance.md",
             ROOT / "curated" / "bitwise" / "README.md",
             ROOT / "curated" / "bitwise" / "next.md",
             *sorted((ROOT / "curated" / "bitwise").glob("*.md")),
@@ -161,6 +157,23 @@ def check_curated_markers(errors: list[str], warnings: list[str]) -> None:
             errors.append(f"curated page has no section headings: {md.relative_to(ROOT)}")
 
 
+
+def check_claim_boundaries(errors: list[str], warnings: list[str]) -> None:
+    for md in (ROOT / "curated" / "bitwise").glob("*.md"):
+        if md.name in ("README.md", "next.md"):
+            continue
+        text = md.read_text(encoding="utf-8", errors="replace")
+        stable_start = text.find("## 稳定证据")
+        boundary_start = text.find("## 边界与反例")
+        if stable_start == -1 or boundary_start == -1:
+            continue
+        stable_section = text[stable_start:boundary_start]
+        stable_no_comments = re.sub(r"<!--.*?-->", "", stable_section, flags=re.DOTALL)
+        if "open PR" in stable_no_comments.lower():
+            errors.append(f"stable evidence contains open PR claim: {md.relative_to(ROOT)}")
+        if "include with boundary" in stable_no_comments.lower() or "include_with_boundary" in stable_no_comments.lower():
+            errors.append(f"stable evidence contains include_with_boundary: {md.relative_to(ROOT)}")
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true")
@@ -175,6 +188,7 @@ def main() -> int:
     check_bitwise_ledger(errors, warnings)
     check_bitwise_evidence(errors, warnings)
     check_curated_markers(errors, warnings)
+    check_claim_boundaries(errors, warnings)
 
     status = "pass" if not errors else "fail"
     report = {"status": status, "errors": errors, "warnings": warnings}

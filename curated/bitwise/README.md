@@ -17,7 +17,6 @@
 4. [Batch Invariance 与 Kernel Geometry](batch_invariance_kernel_geometry.md)
 5. [Deterministic Dispatch 与 Reduction Control](deterministic_dispatch_reduction.md)
 6. [量化与 Dtype 数值语义](quant_dtype_numerical_semantics.md)
-7. [对 Kernel 优化的约束](implications_for_kernels.md)
 
 ## 稳定机制族
 
@@ -29,6 +28,10 @@
 | batch / kernel geometry | batch composition 不能改变同一请求的 kernel geometry、attention path、MoE tile 或 quantized matmul config。 | [Batch Invariance 与 Kernel Geometry](batch_invariance_kernel_geometry.md) |
 | dispatch / reduction | autotune candidate、split-K、atomic reduction、cuBLAS/workspace 和 backend selector 都必须进入 deterministic contract。 | [Deterministic Dispatch 与 Reduction Control](deterministic_dispatch_reduction.md) |
 | quant / dtype semantics | dtype guard、scale layout、fusion math dtype、LoRA activation 和 loading lifetime 都是数值语义的一部分。 | [量化与 Dtype 数值语义](quant_dtype_numerical_semantics.md) |
+
+## 上游基准
+
+vLLM 官方默认不保证 reproducibility；reproducibility 仅限于同硬件、同 vLLM 版本；` VLLM_BATCH_INVARIANT=1 ` 仍处于 beta 且逐步扩展中（跟踪 issue [#27433](https://github.com/vllm-project/vllm/issues/27433)）。本专题所有结论均须在此三层边界内理解。
 
 完整未闭环队列维护在 [next.md](next.md)。
 

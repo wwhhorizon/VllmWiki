@@ -1,0 +1,31 @@
+﻿name: wiki-governance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: python scripts/validate_vllmwiki.py --json
+
+      - name: Link check
+        run: python scripts/check_links.py
+
+      - name: Claim boundary check
+        run: python scripts/check_claim_boundaries.py
+
+      - name: Gold eval
+        run: python scripts/run_gold_eval.py
+
+      - name: Reject local artifacts
+        run: |
+          git ls-files artifacts work raw source private_evidence && exit 1 || true

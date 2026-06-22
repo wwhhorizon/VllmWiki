@@ -1,4 +1,4 @@
-__pycache__/
+﻿__pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
@@ -29,3 +29,5 @@ curated/bitwise_review_queue.md
 audit/manifest.json
 audit/iteration_*.json
 audit/iteration_*.md
+
+artifacts/

@@ -28,7 +28,6 @@
 "bitwise-32481","stable","high","batch_invariance","monitor_regression","candidates/notes/32481.md"
 "bitwise-35569","include_with_boundary","high","deterministic_dispatch_reduction","track_boundary_closure","candidates/notes/35569.md"
 "bitwise-42125","defer_blocked","high","kv_cache_identity","collect_missing_evidence","candidates/notes/42125.md"
-"bitwise-42513","defer_blocked","low","batch_invariance","collect_missing_evidence","candidates/notes/42513.md"
 "bitwise-38670","stable","high","batch_invariance","monitor_regression","candidates/notes/38670.md"
 "bitwise-30018","include_with_boundary","high","batch_invariance","track_boundary_closure","candidates/notes/30018.md"
 "bitwise-33688","stable","high","batch_invariance","monitor_regression","candidates/notes/33688.md"

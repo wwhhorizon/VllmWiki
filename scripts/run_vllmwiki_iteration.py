@@ -11,15 +11,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 WIKI = ROOT / "VllmWiki"
 SCRIPTS = WIKI / "scripts"
 
 
 CORE_LINK_FILES = [
     WIKI / "README.md",
-    WIKI / "WIKI_IMPLEMENTATION.md",
-    WIKI / "Agent_loop.md",
+    WIKI / "docs" / "agent_loop.md",
+    WIKI / "docs" / "maintenance.md",
     WIKI / "curated" / "bitwise" / "README.md",
     WIKI / "curated" / "bitwise" / "next.md",
 ]
@@ -112,13 +112,11 @@ def write_report(report: dict) -> None:
     else:
         lines.append("已检查的核心文件中没有缺失的本地链接。")
     lines.extend(["", "## 下一轮焦点", ""])
-    lines.extend(f"- {item}" for item in report["next_focus"])
-    (audit_dir / f"iteration_{stamp}.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-
-
-def main() -> int:
-    steps = [
-        run_step("generate_vllm_wiki", [str(SCRIPTS / "generate_vllm_wiki.py")]),
+    lines.extend(f"- {item}" for item in report["next_focus": [
+            "审计 runtime LoRA / prefix-cache identity：#42125/#45981、#30931/#31069。",
+            "审计 external KV / LoRA identity 跨仓 schema：#44250/#45549。",
+            "审计 loading-lifetime family：#38991 direct closure。",
+        ]),
         run_step("generate_bitwise_review_queue", [str(SCRIPTS / "generate_bitwise_review_queue.py")]),
         run_step("validate_vllmwiki", [str(SCRIPTS / "validate_vllmwiki.py"), "--json"]),
     ]
@@ -129,8 +127,7 @@ def main() -> int:
         "unique_cases": manifest["coverage"]["unique_cases"],
         "unique_prs": manifest["coverage"]["unique_prs"],
         "pattern_evidence_rows": manifest["coverage"]["pattern_evidence_rows"],
-        "bitwise_queue_rows": read_csv_count(WIKI / "curated" / "bitwise_review_queue.csv"),
-        "bitwise_ledger_rows": read_csv_count(WIKI / "candidates" / "bitwise_ledger.csv"),
+                "bitwise_ledger_rows": read_csv_count(WIKI / "candidates" / "bitwise_ledger.csv"),
         "bitwise_mechanism_pages": len(list((WIKI / "curated" / "bitwise").glob("*.md"))),
         "missing_core_links": len(missing_links),
     }

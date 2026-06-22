@@ -17,39 +17,39 @@ batch composition 改变每个 kernel 看到的 shape、expert token 分布、gr
 ## 稳定证据
 
 - upstream id: [#36488](https://github.com/vllm-project/vllm/pull/36488)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: MXFP4 MoE `matmul_ogs` 原本按 tokens-per-expert 和 SM count 动态选择 `block_m`/`split_k`；PR 传入 `enforce_bitwise_invariance=True`。
-- mechanism: batch-invariant flag 必须传到实际 kernel config 层。
-- boundary: 同时属于 quant/dtype 机制，不代表所有 MoE backend 都已覆盖。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: MXFP4 MoE `matmul_ogs` 原本按 tokens-per-expert 和 SM count 动态选择 `block_m`/`split_k`；PR 传入 `enforce_bitwise_invariance=True`。
+  - mechanism: batch-invariant flag 必须传到实际 kernel config 层。
+  - boundary: 同时属于 quant/dtype 机制，不代表所有 MoE backend 都已覆盖。
 
 - upstream id: [#39096](https://github.com/vllm-project/vllm/issues/39096), [#38938](https://github.com/vllm-project/vllm/pull/38938)
-- upstream status: issue plus PR evidence
-- claim level: stable mechanism
-- direct evidence: SM<90 上 BI mode 与 `torch.compile` / CUDA graphs 组合失败；PR 将 final logits projection 和 compile/graph support gate 拆开处理。
-- mechanism: batch invariance 必须覆盖 final logits projection 和 compile/graph 边界。
-- boundary: 不外推为所有 `torch.compile` 场景都不支持 batch invariance。
+  - upstream status: issue plus PR evidence
+  - claim level: stable mechanism
+  - direct evidence: SM<90 上 BI mode 与 `torch.compile` / CUDA graphs 组合失败；PR 将 final logits projection 和 compile/graph support gate 拆开处理。
+  - mechanism: batch invariance 必须覆盖 final logits projection 和 compile/graph 边界。
+  - boundary: 不外推为所有 `torch.compile` 场景都不支持 batch invariance。
 
 - upstream id: [#32561](https://github.com/vllm-project/vllm/pull/32561)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: cascade attention 会按 batch shape 条件性启用，造成 logprob 差异；merged patch 在 BI mode 下禁用该优化。
-- mechanism: 条件性 attention 优化必须被 gate，或证明启用条件与同 batch 其他请求无关。
-- boundary: PR 讨论把 FlashInfer chunked prefill、MoE、AWQ 留作独立后续边界。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: cascade attention 会按 batch shape 条件性启用，造成 logprob 差异；merged patch 在 BI mode 下禁用该优化。
+  - mechanism: 条件性 attention 优化必须被 gate，或证明启用条件与同 batch 其他请求无关。
+  - boundary: PR 讨论把 FlashInfer chunked prefill、MoE、AWQ 留作独立后续边界。
 
 - upstream id: [#38670](https://github.com/vllm-project/vllm/pull/38670)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: AWQ 在 BI mode 下绕开 AWQ_Marlin，回到 dequant + `torch.matmul`，让 deterministic override 接管。
-- mechanism: quantization auto-conversion 也是 batch-invariant contract 的一部分。
-- boundary: 不能宣称 AWQ_Marlin fused kernel 本身已 deterministic。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: AWQ 在 BI mode 下绕开 AWQ_Marlin，回到 dequant + `torch.matmul`，让 deterministic override 接管。
+  - mechanism: quantization auto-conversion 也是 batch-invariant contract 的一部分。
+  - boundary: 不能宣称 AWQ_Marlin fused kernel 本身已 deterministic。
 
 - upstream id: [#33688](https://github.com/vllm-project/vllm/pull/33688)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: TRITON_ATTN 在 BI mode 下强制 decode 走 2D kernel，before/after logprob test 从失败到通过。
-- mechanism: backend support gate 要证明最终 kernel family 固定，而不只是 backend 名称可运行。
-- boundary: 证据集中在 B200、TRITON_ATTN、GPT-OSS/Qwen 测试；不覆盖 MLA/FlashInfer。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: TRITON_ATTN 在 BI mode 下强制 decode 走 2D kernel，before/after logprob test 从失败到通过。
+  - mechanism: backend support gate 要证明最终 kernel family 固定，而不只是 backend 名称可运行。
+  - boundary: 证据集中在 B200、TRITON_ATTN、GPT-OSS/Qwen 测试；不覆盖 MLA/FlashInfer。
 
 ## 边界与反例
 

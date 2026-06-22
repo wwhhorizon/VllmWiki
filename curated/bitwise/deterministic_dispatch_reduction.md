@@ -17,39 +17,39 @@ compile path 也不是简单的 compile/eager 二选一。需要显式控制 cuB
 ## 稳定证据
 
 - upstream id: [#25194](https://github.com/vllm-project/vllm/issues/25194), [#25197](https://github.com/vllm-project/vllm/pull/25197)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: `_chunk_cumsum_fwd_kernel` 的 `BLOCK_H=1` 与 `BLOCK_H>1` 输出不同；PR 移除不稳定 autotune config。
-- mechanism: autotune candidate 必须先证明数值等价。
-- boundary: 只覆盖该 kernel candidate，不代表全部 autotune 空间已验证。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: `_chunk_cumsum_fwd_kernel` 的 `BLOCK_H=1` 与 `BLOCK_H>1` 输出不同；PR 移除不稳定 autotune config。
+  - mechanism: autotune candidate 必须先证明数值等价。
+  - boundary: 只覆盖该 kernel candidate，不代表全部 autotune 空间已验证。
 
 - upstream id: [#35183](https://github.com/vllm-project/vllm/pull/35183)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: ROCm skinny GEMM 拆成 deterministic store-then-reduce 与 fast `atomicAdd` path。
-- mechanism: deterministic 与 fast path 应显式拆开。
-- boundary: fast path 是性能 opt-in，不承诺 bitwise。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: ROCm skinny GEMM 拆成 deterministic store-then-reduce 与 fast `atomicAdd` path。
+  - mechanism: deterministic 与 fast path 应显式拆开。
+  - boundary: fast path 是性能 opt-in，不承诺 bitwise。
 
 - upstream id: [#34878](https://github.com/vllm-project/vllm/pull/34878)
-- upstream status: merged PR
-- claim level: stable boundary
-- direct evidence: ROCm beam search test 固定 async scheduling、eager、prefix cache、batch size 和 skinny GEMM path。
-- mechanism: verification harness 自身也要固定 batch/reduction geometry。
-- boundary: 这是 test placement，不代表生产 ROCm path 默认全 bitwise。
+  - upstream status: merged PR
+  - claim level: stable boundary
+  - direct evidence: ROCm beam search test 固定 async scheduling、eager、prefix cache、batch size 和 skinny GEMM path。
+  - mechanism: verification harness 自身也要固定 batch/reduction geometry。
+  - boundary: 这是 test placement，不代表生产 ROCm path 默认全 bitwise。
 
 - upstream id: [#27660](https://github.com/vllm-project/vllm/pull/27660)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: BI mode 为 `torch.compile` 路径补 cuBLAS reduced-precision/workspace 控制，并关闭未验证的 AOT compile 组合。
-- mechanism: compile path determinism 需要控制 cuBLAS 和 Dynamo trace side effect。
-- boundary: 不覆盖所有 AOT compile 或未来 PyTorch flag 行为。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: BI mode 为 `torch.compile` 路径补 cuBLAS reduced-precision/workspace 控制，并关闭未验证的 AOT compile 组合。
+  - mechanism: compile path determinism 需要控制 cuBLAS 和 Dynamo trace side effect。
+  - boundary: 不覆盖所有 AOT compile 或未来 PyTorch flag 行为。
 
 - upstream id: [#41651](https://github.com/vllm-project/vllm/issues/41651), [#42650](https://github.com/vllm-project/vllm/pull/42650)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: FlashInfer/Triton metadata builder 从 model-wide head count 改为 served layer 的 `impl.num_heads`。
-- mechanism: plan-time allocation、scratch shape 和 runtime tensor shape 必须来自同一 source of truth。
-- boundary: 不等于所有 TRITON_ATTN FP8 KV 问题都由该 PR 修复。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: FlashInfer/Triton metadata builder 从 model-wide head count 改为 served layer 的 `impl.num_heads`。
+  - mechanism: plan-time allocation、scratch shape 和 runtime tensor shape 必须来自同一 source of truth。
+  - boundary: 不等于所有 TRITON_ATTN FP8 KV 问题都由该 PR 修复。
 
 ## 边界与反例
 

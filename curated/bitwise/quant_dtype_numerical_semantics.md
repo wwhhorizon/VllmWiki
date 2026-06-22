@@ -17,39 +17,39 @@ LoRA + FP8 MoE 展示的是 activation identity：base GEMM 需要量化 activat
 ## 稳定证据
 
 - upstream id: [#33179](https://github.com/vllm-project/vllm/pull/33179)
-- upstream status: closed/unmerged PR
-- claim level: exclude / counterexample
-- direct evidence: maintainer 反驳 gfx950 FP8 Fnuz 前提，说明 Fnuz 只支持 gfx942。
-- mechanism: hardware dtype guard 必须被硬件/maintainer 事实校验。
-- boundary: 这是反例，不进入 dtype 修复链。
+  - upstream status: closed/unmerged PR
+  - claim level: exclude / counterexample
+  - direct evidence: maintainer 反驳 gfx950 FP8 Fnuz 前提，说明 Fnuz 只支持 gfx942。
+  - mechanism: hardware dtype guard 必须被硬件/maintainer 事实校验。
+  - boundary: 这是反例，不进入 dtype 修复链。
 
 - upstream id: [#42120](https://github.com/vllm-project/vllm/pull/42120)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: PR 同时修 `no_lora_flag_cpu` 早退和 `original_hidden_states` stash，避免 stale LoRA mapping 与 LoRA kernel 错吃量化 activation。
-- mechanism: FP8 MoE + LoRA 需要同时维护 base path、adapter path 和 token mapping 生命周期。
-- boundary: wrong input dtype 和 routed-expert LoRA 权重仍是测试覆盖边界。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: PR 同时修 `no_lora_flag_cpu` 早退和 `original_hidden_states` stash，避免 stale LoRA mapping 与 LoRA kernel 错吃量化 activation。
+  - mechanism: FP8 MoE + LoRA 需要同时维护 base path、adapter path 和 token mapping 生命周期。
+  - boundary: wrong input dtype 和 routed-expert LoRA 权重仍是测试覆盖边界。
 
 - upstream id: [#42325](https://github.com/vllm-project/vllm/issues/42325), [#42379](https://github.com/vllm-project/vllm/pull/42379)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: regular RMSNorm、fused add RMSNorm、static FP8 quant RMSNorm 等 kernel site 恢复 native-dtype multiply，并跑 core/IR tests 与 `lm_eval`。
-- mechanism: fusion path 必须声明 multiply dtype 和 reference boundary。
-- boundary: 不能把 Python IR 自动当成所有 CUDA kernel 规范。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: regular RMSNorm、fused add RMSNorm、static FP8 quant RMSNorm 等 kernel site 恢复 native-dtype multiply，并跑 core/IR tests 与 `lm_eval`。
+  - mechanism: fusion path 必须声明 multiply dtype 和 reference boundary。
+  - boundary: 不能把 Python IR 自动当成所有 CUDA kernel 规范。
 
 - upstream id: [#38670](https://github.com/vllm-project/vllm/pull/38670), [#40408](https://github.com/vllm-project/vllm/pull/40408), [#40413](https://github.com/vllm-project/vllm/pull/40413)
-- upstream status: merged PRs
-- claim level: stable family
-- direct evidence: BI mode 下 AWQ_Marlin 被绕开，Cutlass FP8 direct path 通过 fixed-config test，fused add RMSNorm 因已有 BI 证据不再被替换。
-- mechanism: fused/fast kernel 要逐个判断：不可控的绕开，可证明 fixed-config 的保留。
-- boundary: 不外推到所有 fused norm/quant op 或未来 Cutlass tuning。
+  - upstream status: merged PRs
+  - claim level: stable family
+  - direct evidence: BI mode 下 AWQ_Marlin 被绕开，Cutlass FP8 direct path 通过 fixed-config test，fused add RMSNorm 因已有 BI 证据不再被替换。
+  - mechanism: fused/fast kernel 要逐个判断：不可控的绕开，可证明 fixed-config 的保留。
+  - boundary: 不外推到所有 fused norm/quant op 或未来 Cutlass tuning。
 
 - upstream id: [#38991](https://github.com/vllm-project/vllm/issues/38991), [#43163](https://github.com/vllm-project/vllm/issues/43163), [#43464](https://github.com/vllm-project/vllm/pull/43464), [#44645](https://github.com/vllm-project/vllm/pull/44645)
-- upstream status: family evidence, partial merged closure
-- claim level: defer with narrowed proof gap
-- direct evidence: `#43464` 在 iterator 边界 clone yielded tensor，并用 forced buffer reuse test 证明不共享 data pointer；`#44645` 用 Llama4 streaming loader 吸收 clone 的 host-RAM 代价。
-- mechanism: iterator-side `clone()` 是 correctness closure，streaming loader 是 memory/perf closure。
-- boundary: `#38991` 本体仍缺 direct linked closure 和 exact unified-memory regression。
+  - upstream status: family evidence, partial merged closure
+  - claim level: defer with narrowed proof gap
+  - direct evidence: `#43464` 在 iterator 边界 clone yielded tensor，并用 forced buffer reuse test 证明不共享 data pointer；`#44645` 用 Llama4 streaming loader 吸收 clone 的 host-RAM 代价。
+  - mechanism: iterator-side `clone()` 是 correctness closure，streaming loader 是 memory/perf closure。
+  - boundary: `#38991` 本体仍缺 direct linked closure 和 exact unified-memory regression。
 
 ## 边界与反例
 

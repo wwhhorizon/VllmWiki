@@ -17,39 +17,39 @@ runtime LoRA 与 external KV 把问题推进到 version/schema 层。本地 pref
 ## 稳定证据
 
 - upstream id: [#39589](https://github.com/vllm-project/vllm/issues/39589), [#39591](https://github.com/vllm-project/vllm/pull/39591)
-- upstream status: issue plus open PR
-- claim level: include with boundary
-- direct evidence: variable-length concurrent prefill 在 `temperature=0` 下不稳定；patch 指向 stale block_table tail。
-- mechanism: block table tail / row move 是 KV read/write identity 的一部分。
-- boundary: PR 仍 open；move_row 整行复制是性能/简化建议，不是 correctness 阻塞。
+  - upstream status: issue plus open PR
+  - claim level: include with boundary
+  - direct evidence: variable-length concurrent prefill 在 `temperature=0` 下不稳定；patch 指向 stale block_table tail。
+  - mechanism: block table tail / row move 是 KV read/write identity 的一部分。
+  - boundary: PR 仍 open；move_row 整行复制是性能/简化建议，不是 correctness 阻塞。
 
 - upstream id: [#35219](https://github.com/vllm-project/vllm/pull/35219)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: hybrid Mamba/attention 共享 block pool 中，fp32 Mamba state 复用为 fp8/fp16 attention KV 会传播 stale NaN；PR 跟踪新分配 FullAttentionSpec block 并清零。
-- mechanism: KV block identity 包括上一生命周期的 dtype 解释。
-- boundary: hybrid-scoped zeroing，不是所有 attention block 的通用 zeroing policy。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: hybrid Mamba/attention 共享 block pool 中，fp32 Mamba state 复用为 fp8/fp16 attention KV 会传播 stale NaN；PR 跟踪新分配 FullAttentionSpec block 并清零。
+  - mechanism: KV block identity 包括上一生命周期的 dtype 解释。
+  - boundary: hybrid-scoped zeroing，不是所有 attention block 的通用 zeroing policy。
 
 - upstream id: [#30931](https://github.com/vllm-project/vllm/issues/30931), [#31069](https://github.com/vllm-project/vllm/pull/31069)
-- upstream status: issue plus PR evidence
-- claim level: stable
-- direct evidence: LoRA prefix cache hash 使用 `lora_name` 而非全局唯一 `lora_int_id`，同名不同 ID adapter 错误共享 cache block。
-- mechanism: adapter identity 是 KV cache key 的必填维度。
-- boundary: `lora_int_id` 解决本地 identity，不等于 external KV 的跨进程 stable version schema。
+  - upstream status: issue plus PR evidence
+  - claim level: stable
+  - direct evidence: LoRA prefix cache hash 使用 `lora_name` 而非全局唯一 `lora_int_id`，同名不同 ID adapter 错误共享 cache block。
+  - mechanism: adapter identity 是 KV cache key 的必填维度。
+  - boundary: `lora_int_id` 解决本地 identity，不等于 external KV 的跨进程 stable version schema。
 
 - upstream id: [#31210](https://github.com/vllm-project/vllm/issues/31210), [#31341](https://github.com/vllm-project/vllm/pull/31341)
-- upstream status: merged PR
-- claim level: stable
-- direct evidence: PR 让 offload stream 等待 compute stream，并把 store job 延后到下一 engine step。
-- mechanism: offload identity 包括 copy 时序和 DMA 争用。
-- boundary: 后续 copy stream / ForwardContext 改动仍需复核。
+  - upstream status: merged PR
+  - claim level: stable
+  - direct evidence: PR 让 offload stream 等待 compute stream，并把 store job 延后到下一 engine step。
+  - mechanism: offload identity 包括 copy 时序和 DMA 争用。
+  - boundary: 后续 copy stream / ForwardContext 改动仍需复核。
 
 - upstream id: [#42125](https://github.com/vllm-project/vllm/issues/42125), [#45981](https://github.com/vllm-project/vllm/pull/45981)
-- upstream status: issue plus open PR
-- claim level: defer / mainline gap
-- direct evidence: PR 将 local LoRA prefix-cache key 收敛为 loader-effective content identity，并在 request 传播和 block-hash extra keys 中消费。
-- mechanism: same-name reload 需要内容派生 adapter identity，不能只看 name、path 或进程内 counter。
-- boundary: PR 仍 open，source/部署边界和 upstream 接受度未闭环。
+  - upstream status: issue plus open PR
+  - claim level: defer / mainline gap
+  - direct evidence: PR 将 local LoRA prefix-cache key 收敛为 loader-effective content identity，并在 request 传播和 block-hash extra keys 中消费。
+  - mechanism: same-name reload 需要内容派生 adapter identity，不能只看 name、path 或进程内 counter。
+  - boundary: PR 仍 open，source/部署边界和 upstream 接受度未闭环。
 
 ## 边界与反例
 

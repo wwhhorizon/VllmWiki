@@ -36,6 +36,7 @@
 "bitwise-29086","stable","medium","verification_contract","monitor_regression","candidates/notes/29086.md"
 "bitwise-7160","include_with_boundary","medium","verification_contract","track_boundary_closure","candidates/notes/7160.md"
 "bitwise-13418","defer_blocked","medium","verification_contract","collect_missing_evidence","candidates/notes/13418.md"
+"bitwise-6408","defer_blocked","low","verification_contract","collect_missing_evidence","candidates/notes/6408.md"
 "bitwise-29521","include_with_boundary","medium","verification_contract","track_boundary_closure","candidates/notes/29521.md"
 "bitwise-9306","defer_blocked","low","verification_contract","collect_missing_evidence","candidates/notes/9306.md"
 "bitwise-42699","defer_blocked","low","prefix_cache_equivalence","collect_missing_evidence","candidates/notes/42699.md"

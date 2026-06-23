@@ -81,3 +81,7 @@ bitwise-40628,include_with_boundary,medium,batch_invariance,track_boundary_closu
 "bitwise-38887","include_with_boundary","medium","verification_contract","track_boundary_closure","candidates/notes/38887.md"
 "bitwise-27364","defer_blocked","high","quant_dtype_semantics","collect_missing_evidence","candidates/notes/27364.md"
 "bitwise-37996","defer_blocked","medium","quant_dtype_semantics","collect_missing_evidence","candidates/notes/37996.md"
+"bitwise-38718","defer_blocked","high","quant_dtype_semantics","collect_missing_evidence","candidates/notes/38718.md"
+"bitwise-41511","defer_blocked","high","quant_dtype_semantics","collect_missing_evidence","candidates/notes/41511.md"
+"bitwise-42821","defer_blocked","high","deterministic_dispatch_reduction","collect_missing_evidence","candidates/notes/42821.md"
+"bitwise-44223","include_with_boundary","medium","prefix_cache_equivalence","track_boundary_closure","candidates/notes/44223.md"

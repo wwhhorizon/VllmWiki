@@ -28,4 +28,8 @@ jobs:
 
       - name: Reject local artifacts
         run: |
-          git ls-files artifacts work raw source private_evidence && exit 1 || true
+          tracked="$(git ls-files artifacts work raw source private_evidence)"
+          if [ -n "$tracked" ]; then
+            printf '%s\n' "$tracked"
+            exit 1
+          fi

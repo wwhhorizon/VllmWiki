@@ -78,3 +78,6 @@ bitwise-41995,defer_blocked,medium,kv_cache_identity,collect_missing_evidence,ca
 bitwise-44115,defer_blocked,medium,deterministic_dispatch_reduction,collect_missing_evidence,candidates/notes/44115.md
 bitwise-42948,defer_blocked,high,prefix_cache_equivalence,collect_missing_evidence,candidates/notes/42948.md
 bitwise-40628,include_with_boundary,medium,batch_invariance,track_boundary_closure,candidates/notes/40628.md
+"bitwise-38887","include_with_boundary","medium","verification_contract","track_boundary_closure","candidates/notes/38887.md"
+"bitwise-27364","defer_blocked","high","quant_dtype_semantics","collect_missing_evidence","candidates/notes/27364.md"
+"bitwise-37996","defer_blocked","medium","quant_dtype_semantics","collect_missing_evidence","candidates/notes/37996.md"

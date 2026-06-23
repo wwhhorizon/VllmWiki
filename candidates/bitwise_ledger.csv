@@ -91,3 +91,8 @@ bitwise-20261,defer_blocked,high,prefix_cache_equivalence,collect_missing_eviden
 bitwise-42898,defer_blocked,high,quant_dtype_semantics,collect_missing_evidence,candidates/notes/42898.md
 bitwise-35980,defer_blocked,medium,batch_invariance,collect_missing_evidence,candidates/notes/35980.md
 bitwise-42488,defer_blocked,high,quant_dtype_semantics,collect_missing_evidence,candidates/notes/42488.md
+"bitwise-43301","include_with_boundary","high","verification_contract","track_boundary_closure","candidates/notes/43301.md"
+"bitwise-43559","defer_blocked","high","prefix_cache_equivalence","collect_missing_evidence","candidates/notes/43559.md"
+"bitwise-16337","defer_blocked","medium","quant_dtype_semantics","collect_missing_evidence","candidates/notes/16337.md"
+"bitwise-35329","defer_blocked","medium","quant_dtype_semantics","collect_missing_evidence","candidates/notes/35329.md"
+"bitwise-7382","defer_blocked","low","batch_invariance","collect_missing_evidence","candidates/notes/7382.md"

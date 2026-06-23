@@ -100,3 +100,7 @@ bitwise-42488,defer_blocked,high,quant_dtype_semantics,collect_missing_evidence,
 "bitwise-39371","defer_blocked","medium","kv_cache_identity","collect_missing_evidence","candidates/notes/39371.md"
 "bitwise-41343","defer_blocked","high","quant_dtype_semantics","collect_missing_evidence","candidates/notes/41343.md"
 "bitwise-12343","defer_blocked","low","verification_contract","collect_missing_evidence","candidates/notes/12343.md"
+"bitwise-25189","defer_blocked","medium","quant_dtype_semantics","collect_missing_evidence","candidates/notes/25189.md"
+"bitwise-37856","defer_blocked","high","quant_dtype_semantics","collect_missing_evidence","candidates/notes/37856.md"
+"bitwise-38892","defer_blocked","medium","batch_invariance","collect_missing_evidence","candidates/notes/38892.md"
+"bitwise-4091","defer_blocked","low","batch_invariance","collect_missing_evidence","candidates/notes/4091.md"
